@@ -757,6 +757,7 @@ typedef struct _RDPDR_PARALLEL RDPDR_PARALLEL;
 #define FreeRDP_ProxyPort (2017)
 #define FreeRDP_ProxyUsername (2018)
 #define FreeRDP_ProxyPassword (2019)
+#define FreeRDP_ProxyAuthorization (2020)
 #define FreeRDP_RemoteApplicationMode (2112)
 #define FreeRDP_RemoteApplicationName (2113)
 #define FreeRDP_RemoteApplicationIcon (2114)
@@ -1277,7 +1278,8 @@ struct rdp_settings
 	ALIGN64 UINT16 ProxyPort;        /* 2017 */
 	ALIGN64 char* ProxyUsername;     /* 2018 */
 	ALIGN64 char* ProxyPassword;     /* 2019 */
-	UINT64 padding2112[2112 - 2020]; /* 2020 */
+    ALIGN64 char* ProxyAuthorization; /* 2020*/
+	UINT64 padding2112[2112 - 2021]; /* 2021 */
 
 	/**
 	 * RemoteApp

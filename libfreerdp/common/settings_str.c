@@ -347,6 +347,7 @@ static const struct settings_str_entry settings_map[] = {
 	{ FreeRDP_PrivateKeyFile, 7, "FreeRDP_PrivateKeyFile" },
 	{ FreeRDP_ProxyHostname, 7, "FreeRDP_ProxyHostname" },
 	{ FreeRDP_ProxyPassword, 7, "FreeRDP_ProxyPassword" },
+	{ FreeRDP_ProxyAuthorization, 7, "FreeRDP_ProxyAuthorization"},   
 	{ FreeRDP_ProxyUsername, 7, "FreeRDP_ProxyUsername" },
 	{ FreeRDP_RDP2TCPArgs, 7, "FreeRDP_RDP2TCPArgs" },
 	{ FreeRDP_RdpKeyContent, 7, "FreeRDP_RdpKeyContent" },

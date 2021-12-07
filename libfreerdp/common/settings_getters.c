@@ -2428,6 +2428,9 @@ const char* freerdp_settings_get_string(const rdpSettings* settings, size_t id)
 		case FreeRDP_ProxyPassword:
 			return settings->ProxyPassword;
 
+		case FreeRDP_ProxyAuthorization:
+			return settings->ProxyAuthorization;
+
 		case FreeRDP_ProxyUsername:
 			return settings->ProxyUsername;
 
@@ -2656,6 +2659,9 @@ BOOL freerdp_settings_set_string_(rdpSettings* settings, size_t id, const char* 
 
 		case FreeRDP_ProxyPassword:
 			return update_string(&settings->ProxyPassword, cnv.cc, len, cleanup);
+
+		case FreeRDP_ProxyAuthorization:
+			return update_string(&settings->ProxyAuthorization, cnv.cc, len, cleanup);
 
 		case FreeRDP_ProxyUsername:
 			return update_string(&settings->ProxyUsername, cnv.cc, len, cleanup);
