@@ -23,17 +23,6 @@
 #include <winpr/string.h>
 
 #include <freerdp/streamdump.h>
-#include <freerdp/transport_io.h>
-
-struct stream_dump_context
-{
-	rdpTransportIo io;
-	size_t writeDumpOffset;
-	size_t readDumpOffset;
-	size_t replayOffset;
-	UINT64 replayTime;
-	CONNECTION_STATE state;
-};
 
 BOOL stream_dump_read_line(FILE* fp, wStream* s, UINT64* pts, size_t* pOffset)
 {

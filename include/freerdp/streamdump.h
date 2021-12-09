@@ -26,6 +26,17 @@
 
 #include <freerdp/api.h>
 #include <freerdp/freerdp.h>
+#include <freerdp/transport_io.h>
+
+struct stream_dump_context
+{
+	rdpTransportIo io;
+	size_t writeDumpOffset;
+	size_t readDumpOffset;
+	size_t replayOffset;
+	UINT64 replayTime;
+	CONNECTION_STATE state;
+};
 
 typedef struct stream_dump_context rdpStreamDumpContext;
 
