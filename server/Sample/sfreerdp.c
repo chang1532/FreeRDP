@@ -45,6 +45,8 @@
 
 #include <freerdp/constants.h>
 #include <freerdp/server/rdpsnd.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "sf_audin.h"
 #include "sf_rdpsnd.h"
@@ -942,6 +944,43 @@ fail:
 	return -1;
 }
 
+static int get_replay_dump_file(char *buf, int buflen, int *need_replay)
+{
+	char *time_str = getenv("BH_RECORD_USR_TIMESTAMP");
+	char *record_name = getenv("BH_RECORD_NAME");
+	WLog_INFO(TAG, "BH_RECORD_USR_TIMESTAMP:%s, BH_RECORD_NAME:%s", time_str?time_str:"NULL", record_name?record_name:"NULL");
+
+	if (need_replay)
+	{
+		*need_replay = 0;
+	}
+
+	if (time_str == NULL || record_name == NULL)
+	{
+		WLog_ERR(TAG, "not set env:BH_RECORD_USR_TIMESTAMP or BH_RECORD_NAME");
+		return -1;
+	}
+
+	time_t cur_time = time(NULL);
+	time_t timestamp = atol(time_str);
+	if ((timestamp > cur_time + 180) || (timestamp < cur_time - 180))
+	{
+		WLog_ERR(TAG, "timestamp not valid, timestamp:%ld, cur_time:%ld", timestamp, cur_time);
+		return -1;
+	}
+
+	memset(buf, 0, buflen);
+	strcpy(buf, record_name);
+
+	if (need_replay)
+	{
+		*need_replay = 1;
+	}
+	//WLog_INFO(TAG, "record_name:%s", buf);
+
+	return 0;
+}
+
 static DWORD WINAPI test_peer_mainloop(LPVOID arg)
 {
 	BOOL rc;
@@ -952,6 +991,8 @@ static DWORD WINAPI test_peer_mainloop(LPVOID arg)
 	testPeerContext* context;
 	struct server_info* info;
 	freerdp_peer* client = (freerdp_peer*)arg;
+	char replay_dump[1024] = {0};
+	int need_replay = 0;
 
 	const char* key = "server.key";
 	const char* cert = "server.crt";
@@ -973,12 +1014,14 @@ static DWORD WINAPI test_peer_mainloop(LPVOID arg)
 		cert = info->cert;
 
 	/* Initialize the real server settings here */
+	get_replay_dump_file(replay_dump, 1024, &need_replay);
+	WLog_INFO(TAG, "replay_dump:%s, need_replay:%d", replay_dump, need_replay);
 	WINPR_ASSERT(client->settings);
-	if (info->replay_dump)
+	if (need_replay)
 	{
 		if (!freerdp_settings_set_bool(client->settings, FreeRDP_TransportDumpReplay, TRUE) ||
 		    !freerdp_settings_set_string(client->settings, FreeRDP_TransportDumpFile,
-		                                 info->replay_dump))
+		                                 replay_dump))
 		{
 			freerdp_peer_free(client);
 			return 0;
@@ -1027,7 +1070,7 @@ static DWORD WINAPI test_peer_mainloop(LPVOID arg)
 	context = (testPeerContext*)client->context;
 	WINPR_ASSERT(context);
 
-	if (info->replay_dump)
+	if (need_replay)
 	{
 		const rdpTransportIo* cb = freerdp_get_io_callbacks(client->context);
 		rdpTransportIo replay;
