@@ -47,6 +47,7 @@
 #include <freerdp/server/rdpsnd.h>
 #include <stdlib.h>
 #include <time.h>
+#include <jansson.h>
 
 #include "sf_audin.h"
 #include "sf_rdpsnd.h"
@@ -946,23 +947,51 @@ fail:
 
 static int get_replay_dump_file(char *buf, int buflen, int *need_replay)
 {
-	char *time_str = getenv("BH_RECORD_USR_TIMESTAMP");
-	char *record_name = getenv("BH_RECORD_NAME");
-	WLog_INFO(TAG, "BH_RECORD_USR_TIMESTAMP:%s, BH_RECORD_NAME:%s", time_str?time_str:"NULL", record_name?record_name:"NULL");
+	json_t *js_val = NULL;
+	json_t *json_obj = NULL;
+	time_t timestamp = 0;
+	time_t cur_time = 0;
+	const char *record_name = NULL;
 
 	if (need_replay)
 	{
 		*need_replay = 0;
 	}
 
-	if (time_str == NULL || record_name == NULL)
+	// 加载文件
+	json_obj = json_load_file("./record.info", 0, NULL);
+	if (!json_obj)
 	{
-		WLog_ERR(TAG, "not set env:BH_RECORD_USR_TIMESTAMP or BH_RECORD_NAME");
+		WLog_ERR(TAG, "load record.info failed");
 		return -1;
 	}
 
-	time_t cur_time = time(NULL);
-	time_t timestamp = atol(time_str);
+	// 读取 record_name
+	js_val = json_object_get(json_obj, "record_name");
+	if (!js_val || json_typeof(js_val) != JSON_STRING)
+	{
+		WLog_ERR(TAG, "get JSON_STRING failed");
+		goto ERR_RET;
+	}
+
+	record_name = json_string_value(js_val);
+	if (record_name == NULL)
+	{
+		WLog_ERR(TAG, "get NULL record_name");
+		goto ERR_RET;
+	}
+
+	// 读取 timestamp
+	js_val = json_object_get(json_obj, "timestamp");
+	if (!js_val || json_typeof(js_val) != JSON_INTEGER)
+	{
+		WLog_ERR(TAG, "get timestamp failed");
+		goto ERR_RET;
+	}
+
+	cur_time = time(NULL);
+	timestamp = (long)json_integer_value(js_val);
+	WLog_INFO(TAG, "timestamp:%ld, record_name:%s", timestamp, record_name?record_name:"NULL");
 	if ((timestamp > cur_time + 180) || (timestamp < cur_time - 180))
 	{
 		WLog_ERR(TAG, "timestamp not valid, timestamp:%ld, cur_time:%ld", timestamp, cur_time);
@@ -976,9 +1005,13 @@ static int get_replay_dump_file(char *buf, int buflen, int *need_replay)
 	{
 		*need_replay = 1;
 	}
-	//WLog_INFO(TAG, "record_name:%s", buf);
 
+	json_decref(json_obj);
 	return 0;
+	
+ERR_RET:
+	json_decref(json_obj);
+	return -1;
 }
 
 static DWORD WINAPI test_peer_mainloop(LPVOID arg)
