@@ -959,7 +959,7 @@ static int get_replay_dump_file(char *buf, int buflen, int *need_replay)
 	}
 
 	// 加载文件
-	json_obj = json_load_file("./record.info", 0, NULL);
+	json_obj = json_load_file("/data/bh_replay_server/tmp/record.info", 0, NULL);
 	if (!json_obj)
 	{
 		WLog_ERR(TAG, "load record.info failed");
