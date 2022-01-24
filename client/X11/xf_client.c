@@ -814,8 +814,6 @@ void xf_lock_x11_(xfContext* xfc, const char* fkt)
 	else
 		XLockDisplay(xfc->display);
 
-	if (xfc->locked)
-		WLog_WARN(TAG, "%s:\t[%" PRIu32 "] recursive lock from %s", __FUNCTION__, xfc->locked, fkt);
 	xfc->locked++;
 	WLog_VRB(TAG, "%s:\t[%" PRIu32 "] from %s", __FUNCTION__, xfc->locked, fkt);
 }
@@ -836,14 +834,13 @@ void xf_unlock_x11_(xfContext* xfc, const char* fkt)
 static BOOL xf_get_pixmap_info(xfContext* xfc)
 {
 	int i;
-	int vi_count;
-	int pf_count;
-	XVisualInfo* vi;
-	XVisualInfo* vis;
-	XVisualInfo tpl;
-	XPixmapFormatValues* pf;
-	XPixmapFormatValues* pfs;
-	XWindowAttributes window_attributes;
+	int vi_count = 0;
+	int pf_count = 0;
+	XVisualInfo* vi = NULL;
+	XVisualInfo* vis = NULL;
+	XVisualInfo tpl = { 0 };
+	XPixmapFormatValues* pfs = NULL;
+	XWindowAttributes window_attributes = { 0 };
 	WINPR_ASSERT(xfc->display);
 	pfs = XListPixmapFormats(xfc->display, &pf_count);
 
@@ -855,7 +852,7 @@ static BOOL xf_get_pixmap_info(xfContext* xfc)
 
 	for (i = 0; i < pf_count; i++)
 	{
-		pf = pfs + i;
+		const XPixmapFormatValues* pf = &pfs[i];
 
 		if (pf->depth == xfc->depth)
 		{
@@ -865,7 +862,7 @@ static BOOL xf_get_pixmap_info(xfContext* xfc)
 	}
 
 	XFree(pfs);
-	ZeroMemory(&tpl, sizeof(tpl));
+
 	tpl.class = TrueColor;
 	tpl.screen = xfc->screen_number;
 
@@ -1769,7 +1766,7 @@ DWORD xf_exit_code_from_disconnect_reason(DWORD reason)
 	return reason;
 }
 
-static void xf_TerminateEventHandler(void* context, TerminateEventArgs* e)
+static void xf_TerminateEventHandler(void* context, const TerminateEventArgs* e)
 {
 	rdpContext* ctx = (rdpContext*)context;
 	WINPR_UNUSED(e);
@@ -1777,7 +1774,7 @@ static void xf_TerminateEventHandler(void* context, TerminateEventArgs* e)
 }
 
 #ifdef WITH_XRENDER
-static void xf_ZoomingChangeEventHandler(void* context, ZoomingChangeEventArgs* e)
+static void xf_ZoomingChangeEventHandler(void* context, const ZoomingChangeEventArgs* e)
 {
 	xfContext* xfc = (xfContext*)context;
 	rdpSettings* settings = xfc->context.settings;
@@ -1801,7 +1798,7 @@ static void xf_ZoomingChangeEventHandler(void* context, ZoomingChangeEventArgs* 
 	xf_draw_screen(xfc, 0, 0, settings->DesktopWidth, settings->DesktopHeight);
 }
 
-static void xf_PanningChangeEventHandler(void* context, PanningChangeEventArgs* e)
+static void xf_PanningChangeEventHandler(void* context, const PanningChangeEventArgs* e)
 {
 	xfContext* xfc = (xfContext*)context;
 	rdpSettings* settings = xfc->context.settings;
@@ -1955,7 +1952,8 @@ static BOOL xfreerdp_client_new(freerdp* instance, rdpContext* context)
 		if ((status == Success) && (actual_type == XA_ATOM) && (actual_format == 32))
 		{
 			xfc->supportedAtomCount = nitems;
-			xfc->supportedAtoms = calloc(nitems, sizeof(Atom));
+			xfc->supportedAtoms = calloc(xfc->supportedAtomCount, sizeof(Atom));
+			WINPR_ASSERT(xfc->supportedAtoms);
 			memcpy(xfc->supportedAtoms, data, nitems * sizeof(Atom));
 		}
 
