@@ -586,9 +586,10 @@ static BOOL sendQueuedChannelData(pClientContext* pc)
 				rc = TRUE;
 			else
 			{
-				WINPR_ASSERT(pc->context.instance->SendChannelData);
-				rc = pc->context.instance->SendChannelData(pc->context.instance, channelId,
-				                                           ev->data, ev->data_len);
+				WINPR_ASSERT(pc->context.instance->SendChannelPacket);
+				rc = pc->context.instance->SendChannelPacket(pc->context.instance, channelId,
+				                                             ev->total_size, ev->flags, ev->data,
+				                                             ev->data_len);
 			}
 			channel_data_free(ev);
 		}
