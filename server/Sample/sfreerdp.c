@@ -1069,7 +1069,7 @@ static DWORD WINAPI test_peer_mainloop(LPVOID arg)
 		return 0;
 	}
 
-	client->settings->RdpSecurity = TRUE;
+	client->settings->RdpSecurity = FALSE;
 	client->settings->TlsSecurity = TRUE;
 	client->settings->NlaSecurity = FALSE;
 	client->settings->EncryptionLevel = ENCRYPTION_LEVEL_CLIENT_COMPATIBLE;
