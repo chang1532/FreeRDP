@@ -527,6 +527,9 @@ static DWORD WINAPI pf_server_handle_peer(LPVOID arg)
 	PROXY_LOG_INFO(TAG, ps, "new connection: proxy address: %s, client address: %s",
 	               pdata->config->Host, client->hostname);
 
+	if (!pf_modules_run_hook(pdata->module, HOOK_TYPE_SERVER_INIT, pdata, client))
+		goto out_free_peer;
+
 	while (1)
 	{
 		HANDLE ChannelEvent = INVALID_HANDLE_VALUE;
