@@ -62,7 +62,7 @@ static const char* rplstat[] = { "succeeded",
 	                             "Command not supported",
 	                             "Address type not supported" };
 
-static BOOL http_proxy_connect(BIO* bufferedBio, const char* hostname, UINT16 port, const char *authorization);
+static BOOL http_proxy_connect(BIO* bufferedBio, const char* hostname, UINT16 port);
 static BOOL socks_proxy_connect(BIO* bufferedBio, const char* proxyUsername,
                                 const char* proxyPassword, const char* hostname, UINT16 port);
 static void proxy_read_environment(rdpSettings* settings, char* envname);
@@ -381,7 +381,7 @@ BOOL proxy_connect(rdpSettings* settings, BIO* bufferedBio, const char* proxyUse
 			return TRUE;
 
 		case PROXY_TYPE_HTTP:
-			return http_proxy_connect(bufferedBio, hostname, port, freerdp_settings_get_string(settings, FreeRDP_ProxyAuthorization));
+			return http_proxy_connect(bufferedBio, hostname, port);
 
 		case PROXY_TYPE_SOCKS:
 			return socks_proxy_connect(bufferedBio, proxyUsername, proxyPassword, hostname, port);
@@ -404,14 +404,14 @@ static const char* get_response_header(char* response)
 	return response;
 }
 
-static BOOL http_proxy_connect(BIO* bufferedBio, const char* hostname, UINT16 port, const char *authorization)
+static BOOL http_proxy_connect(BIO* bufferedBio, const char* hostname, UINT16 port)
 {
 	int status;
 	wStream* s;
 	char port_str[10], recv_buf[256], *eol;
 	size_t resultsize;
 	_itoa_s(port, port_str, sizeof(port_str), 10);
-	s = Stream_New(NULL, 1024);
+	s = Stream_New(NULL, 200);
 	Stream_Write(s, "CONNECT ", 8);
 	Stream_Write(s, hostname, strlen(hostname));
 	Stream_Write_UINT8(s, ':');
@@ -420,12 +420,6 @@ static BOOL http_proxy_connect(BIO* bufferedBio, const char* hostname, UINT16 po
 	Stream_Write(s, hostname, strlen(hostname));
 	Stream_Write_UINT8(s, ':');
 	Stream_Write(s, port_str, strnlen(port_str, sizeof(port_str)));
-	if (authorization)
-	{
-		Stream_Write(s, CRLF, 2);
-		Stream_Write(s, authorization, strlen(authorization));
-	}
-
 	Stream_Write(s, CRLF CRLF, 4);
 	status = BIO_write(bufferedBio, Stream_Buffer(s), Stream_GetPosition(s));
 
