@@ -20,9 +20,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -85,7 +83,7 @@ IRP* irp_new(DEVMAN* devman, wStream* s, UINT* error)
 	DEVICE* device;
 	UINT32 DeviceId;
 
-	if (Stream_GetRemainingLength(s) < 20)
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 20))
 	{
 		if (error)
 			*error = ERROR_INVALID_DATA;

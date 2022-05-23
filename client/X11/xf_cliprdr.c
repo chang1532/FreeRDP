@@ -19,9 +19,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <stdlib.h>
 #include <errno.h>
@@ -47,6 +45,7 @@
 #endif
 
 #include <winpr/crt.h>
+#include <winpr/assert.h>
 #include <winpr/image.h>
 #include <winpr/stream.h>
 #include <winpr/clipboard.h>
@@ -64,16 +63,15 @@
 #define MAX_CLIPBOARD_FORMATS 255
 #define WIN32_FILETIME_TO_UNIX_EPOCH_USEC UINT64_C(116444736000000000)
 
-struct xf_cliprdr_format
+typedef struct
 {
 	Atom atom;
 	UINT32 formatId;
 	char* formatName;
-};
-typedef struct xf_cliprdr_format xfCliprdrFormat;
+} xfCliprdrFormat;
 
 #ifdef WITH_FUSE
-struct xf_cliprdr_fuse_stream
+typedef struct
 {
 	UINT32 stream_id;
 	/* must be one of FILECONTENTS_SIZE or FILECONTENTS_RANGE*/
@@ -81,10 +79,9 @@ struct xf_cliprdr_fuse_stream
 	fuse_req_t req;
 	/*for FILECONTENTS_SIZE must be ino number* */
 	size_t req_ino;
-};
-typedef struct xf_cliprdr_fuse_stream xfCliprdrFuseStream;
+} xfCliprdrFuseStream;
 
-struct xf_cliprdr_fuse_inode
+typedef struct
 {
 	size_t parent_ino;
 	size_t ino;
@@ -95,8 +92,7 @@ struct xf_cliprdr_fuse_inode
 	struct timespec st_mtim;
 	char* name;
 	wArrayList* child_inos;
-};
-typedef struct xf_cliprdr_fuse_inode xfCliprdrFuseInode;
+} xfCliprdrFuseInode;
 
 static void xf_cliprdr_fuse_inode_free(void* obj)
 {
@@ -418,11 +414,8 @@ static CLIPRDR_FORMAT* xf_cliprdr_parse_server_format_list(BYTE* data, size_t le
 		goto error;
 	}
 
-	if (Stream_GetRemainingLength(s) < sizeof(UINT32))
-	{
-		WLog_ERR(TAG, "too short serialized format list");
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, sizeof(UINT32)))
 		goto error;
-	}
 
 	Stream_Read_UINT32(s, *numFormats);
 
@@ -443,11 +436,8 @@ static CLIPRDR_FORMAT* xf_cliprdr_parse_server_format_list(BYTE* data, size_t le
 		const char* formatName = NULL;
 		size_t formatNameLength = 0;
 
-		if (Stream_GetRemainingLength(s) < sizeof(UINT32))
-		{
-			WLog_ERR(TAG, "unexpected end of serialized format list");
+		if (!Stream_CheckAndLogRequiredLength(TAG, s, sizeof(UINT32)))
 			goto error;
-		}
 
 		Stream_Read_UINT32(s, formats[i].formatId);
 		formatName = (const char*)Stream_Pointer(s);
@@ -1620,6 +1610,10 @@ static UINT xf_cliprdr_server_format_list(CliprdrClientContext* context,
 	xfc = clipboard->xfc;
 	WINPR_ASSERT(xfc);
 
+	/* Clear the active SelectionRequest, as it is now invalid */
+	free(clipboard->respond);
+	clipboard->respond = NULL;
+
 	xf_clipboard_formats_free(clipboard);
 	xf_cliprdr_clear_cached_data(clipboard);
 	clipboard->data_format_id = -1;
@@ -1799,11 +1793,8 @@ static xfCliprdrFuseInode* xf_cliprdr_fuse_create_root_node()
 static BOOL xf_cliprdr_fuse_check_stream(wStream* s, size_t count)
 {
 	UINT32 nrDescriptors;
-	if (Stream_GetRemainingLength(s) < sizeof(UINT32))
-	{
-		WLog_ERR(TAG, "too short serialized format list");
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, sizeof(UINT32)))
 		return FALSE;
-	}
 
 	Stream_Read_UINT32(s, nrDescriptors);
 	if (count != nrDescriptors)
@@ -2053,6 +2044,8 @@ xf_cliprdr_server_format_data_response(CliprdrClientContext* context,
 	if (formatDataResponse->msgFlags == CB_RESPONSE_FAIL)
 	{
 		WLog_WARN(TAG, "Format Data Response PDU msgFlags is CB_RESPONSE_FAIL");
+		free(clipboard->respond);
+		clipboard->respond = NULL;
 		return CHANNEL_RC_OK;
 	}
 
@@ -2159,7 +2152,7 @@ xf_cliprdr_server_format_data_response(CliprdrClientContext* context,
 	{
 		if (SrcSize == 0)
 		{
-			WLog_INFO(TAG, "skipping, empty data detected!!!");
+			WLog_DBG(TAG, "skipping, empty data detected!");
 			free(clipboard->respond);
 			clipboard->respond = NULL;
 			return CHANNEL_RC_OK;
@@ -2825,6 +2818,9 @@ xfClipboard* xf_clipboard_new(xfContext* xfc)
 	const char* selectionAtom;
 	xfCliprdrFormat* clientFormat;
 
+	WINPR_ASSERT(xfc);
+	WINPR_ASSERT(xfc->common.context.settings);
+
 	if (!(clipboard = (xfClipboard*)calloc(1, sizeof(xfClipboard))))
 	{
 		WLog_ERR(TAG, "failed to allocate xfClipboard data");
@@ -2839,8 +2835,8 @@ xfClipboard* xf_clipboard_new(xfContext* xfc)
 	clipboard->requestedFormatId = -1;
 	clipboard->root_window = DefaultRootWindow(xfc->display);
 	selectionAtom = "CLIPBOARD";
-	if (xfc->context.settings->XSelectionAtom)
-		selectionAtom = xfc->context.settings->XSelectionAtom;
+	if (xfc->common.context.settings->XSelectionAtom)
+		selectionAtom = xfc->common.context.settings->XSelectionAtom;
 	clipboard->clipboard_atom = XInternAtom(xfc->display, selectionAtom, FALSE);
 
 	if (clipboard->clipboard_atom == None)

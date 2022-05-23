@@ -20,9 +20,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <winpr/config.h>
 
 #if defined __linux__ && !defined ANDROID
 
@@ -1179,7 +1177,8 @@ static HANDLE_OPS ops = { CommIsHandled, CommCloseHandle,
 	                      NULL,          NULL,
 	                      NULL,          NULL,
 	                      NULL,          NULL,
-	                      NULL,          NULL };
+	                      NULL,          NULL,
+	                      NULL };
 
 /**
  * http://msdn.microsoft.com/en-us/library/windows/desktop/aa363198%28v=vs.85%29.aspx

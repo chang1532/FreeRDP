@@ -18,22 +18,19 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include "wlf_pointer.h"
 #include "wlfreerdp.h"
 
 #define TAG CLIENT_TAG("wayland.pointer")
 
-struct wlf_pointer
+typedef struct
 {
 	rdpPointer pointer;
 	size_t size;
 	void* data;
-};
-typedef struct wlf_pointer wlfPointer;
+} wlfPointer;
 
 static BOOL wlf_Pointer_New(rdpContext* context, rdpPointer* pointer)
 {

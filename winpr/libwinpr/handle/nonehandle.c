@@ -18,9 +18,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <winpr/config.h>
 
 #include "nonehandle.h"
 
@@ -60,6 +58,7 @@ static HANDLE_OPS ops = { NoneHandleIsHandle,
 	                      NoneHandleCloseHandle,
 	                      NoneHandleGetFd,
 	                      NULL, /* CleanupHandle */
+	                      NULL,
 	                      NULL,
 	                      NULL,
 	                      NULL,

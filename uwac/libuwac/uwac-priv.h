@@ -23,7 +23,7 @@
 #ifndef UWAC_PRIV_H_
 #define UWAC_PRIV_H_
 
-#include "config.h"
+#include <uwac/config.h>
 
 #include <stdbool.h>
 #include <wayland-client.h>
@@ -254,6 +254,14 @@ struct uwac_window
 	uint32_t pointer_cursor_serial;
 	int pointer_current_cursor;
 };
+
+/**@brief data to pass to wl_buffer release listener */
+struct uwac_buffer_release_data
+{
+	UwacWindow* window;
+	int bufferIdx;
+};
+typedef struct uwac_buffer_release_data UwacBufferReleaseData;
 
 /* in uwa-display.c */
 UwacEvent* UwacDisplayNewEvent(UwacDisplay* d, int type);

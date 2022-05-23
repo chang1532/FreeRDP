@@ -18,9 +18,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +26,7 @@
 #include <errno.h>
 
 #include <winpr/crt.h>
+#include <winpr/assert.h>
 
 #include "../core/settings.h"
 #include "../core/certificate.h"
@@ -371,7 +370,7 @@ RDPDR_DEVICE* freerdp_device_new(UINT32 Type, size_t count, const char* args[])
 						goto fail;
 				}
 				if (count > 2)
-					device.drive->automount = (args[2] == NULL) ? FALSE : TRUE;
+					device.drive->automount = (args[2] == NULL) ? TRUE : FALSE;
 				break;
 			default:
 				goto fail;
@@ -783,6 +782,7 @@ void freerdp_dynamic_channel_collection_free(rdpSettings* settings)
 {
 	UINT32 i;
 
+	WINPR_ASSERT(settings);
 	for (i = 0; i < freerdp_settings_get_uint32(settings, FreeRDP_DynamicChannelCount); i++)
 	{
 		freerdp_addin_argv_free(settings->DynamicChannelArray[i]);
@@ -797,6 +797,8 @@ void freerdp_dynamic_channel_collection_free(rdpSettings* settings)
 void freerdp_target_net_addresses_free(rdpSettings* settings)
 {
 	UINT32 index;
+
+	WINPR_ASSERT(settings);
 
 	for (index = 0; index < settings->TargetNetAddressCount; index++)
 		free(settings->TargetNetAddresses[index]);
@@ -1027,18 +1029,21 @@ BOOL freerdp_settings_set_value_for_name(rdpSettings* settings, const char* name
 {
 	ULONGLONG uval;
 	LONGLONG ival;
-	SSIZE_T index, type;
+	SSIZE_T i, type;
+	size_t index;
 	if (!settings || !name)
 		return FALSE;
 
-	index = freerdp_settings_get_key_for_name(name);
-	if (index < 0)
+	i = freerdp_settings_get_key_for_name(name);
+	if (i < 0)
 	{
 		WLog_ERR(TAG, "Invalid settings key [%s]", name);
 		return FALSE;
 	}
 
-	type = freerdp_settings_get_type_for_key((size_t)index);
+	index = (size_t)i;
+
+	type = freerdp_settings_get_type_for_key(index);
 	switch (type)
 	{
 
@@ -1108,7 +1113,7 @@ static BOOL freerdp_settings_set_pointer_len_(rdpSettings* settings, size_t id, 
 		return FALSE;
 	if (lenId >= 0)
 	{
-		if (!freerdp_settings_set_uint32(settings, lenId, 0))
+		if (!freerdp_settings_set_uint32(settings, (size_t)lenId, 0))
 			return FALSE;
 	}
 
@@ -1127,12 +1132,18 @@ static BOOL freerdp_settings_set_pointer_len_(rdpSettings* settings, size_t id, 
 	}
 	if (lenId < 0)
 		return TRUE;
-	return freerdp_settings_set_uint32(settings, lenId, len);
+	return freerdp_settings_set_uint32(settings, (size_t)lenId, len);
 }
 
 const void* freerdp_settings_get_pointer(const rdpSettings* settings, size_t id)
 {
-	return freerdp_settings_get_pointer_writable(settings, id);
+	union
+	{
+		const rdpSettings* pc;
+		rdpSettings* p;
+	} cnv;
+	cnv.pc = settings;
+	return freerdp_settings_get_pointer_writable(cnv.p, id);
 }
 
 BOOL freerdp_settings_set_pointer_len(rdpSettings* settings, size_t id, const void* data,
@@ -1152,7 +1163,19 @@ BOOL freerdp_settings_set_pointer_len(rdpSettings* settings, size_t id, const vo
 	{
 		case FreeRDP_RdpServerCertificate:
 			certificate_free(settings->RdpServerCertificate);
-			settings->RdpServerCertificate = (rdpCertificate*)cnv.v;
+
+			if (len > 1)
+			{
+				WLog_ERR(TAG, "FreeRDP_RdpServerCertificate::len must be 0 or 1");
+				return FALSE;
+			}
+			settings->RdpServerCertificate = cnv.v;
+			if (!settings->RdpServerCertificate && (len > 0))
+			{
+				settings->RdpServerCertificate = certificate_new();
+				if (!settings->RdpServerCertificate)
+					return FALSE;
+			}
 			return TRUE;
 		case FreeRDP_RdpServerRsaKey:
 			key_free(settings->RdpServerRsaKey);
@@ -1203,12 +1226,20 @@ BOOL freerdp_settings_set_pointer_len(rdpSettings* settings, size_t id, const vo
 			                                       sizeof(CHANNEL_DEF)))
 				return FALSE;
 			return freerdp_settings_set_uint32(settings, FreeRDP_ChannelCount, len);
-		case FreeRDP_ClientAutoReconnectCookie:
-		case FreeRDP_ServerAutoReconnectCookie:
 		case FreeRDP_MonitorDefArray:
+			return freerdp_settings_set_pointer_len_(settings, id, -1, data, len,
+			                                         sizeof(rdpMonitor));
+		case FreeRDP_ClientAutoReconnectCookie:
+			return freerdp_settings_set_pointer_len_(settings, id, -1, data, len,
+			                                         sizeof(ARC_CS_PRIVATE_PACKET));
+		case FreeRDP_ServerAutoReconnectCookie:
+			return freerdp_settings_set_pointer_len_(settings, id, -1, data, len,
+			                                         sizeof(ARC_SC_PRIVATE_PACKET));
+		case FreeRDP_ClientTimeZone:
+			return freerdp_settings_set_pointer_len_(settings, id, -1, data, len,
+			                                         sizeof(TIME_ZONE_INFORMATION));
 		case FreeRDP_ReceivedCapabilities:
 		case FreeRDP_OrderSupport:
-		case FreeRDP_ClientTimeZone:
 		case FreeRDP_BitmapCacheV2CellInfo:
 		case FreeRDP_GlyphCache:
 		case FreeRDP_FragCache:
@@ -1337,6 +1368,11 @@ BOOL freerdp_settings_set_pointer_array(rdpSettings* settings, size_t id, size_t
 			if (offset > freerdp_settings_get_uint32(settings, FreeRDP_ChannelDefArraySize))
 				return FALSE;
 			settings->ChannelDefArray[offset] = *(const CHANNEL_DEF*)data;
+			return TRUE;
+		case FreeRDP_MonitorDefArray:
+			if (offset > freerdp_settings_get_uint32(settings, FreeRDP_MonitorDefArraySize))
+				return FALSE;
+			settings->MonitorDefArray[offset] = *(const rdpMonitor*)data;
 			return TRUE;
 		default:
 			WLog_WARN(TAG, "Invalid id %" PRIuz " for %s", id, __FUNCTION__);

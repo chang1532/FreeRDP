@@ -249,6 +249,13 @@ if(WIN32 AND WITH_MEDIA_FOUNDATION)
     set(CODEC_SRCS ${CODEC_SRCS} codec/h264_mf.c)
 endif()
 
+if(ANDROID AND WITH_MEDIACODEC)
+    list(APPEND CODEC_SRCS codec/h264_mediacodec.c)
+
+		find_library(MEDIACODEC mediandk REQUIRED)
+		freerdp_library_add(${MEDIACODEC})
+endif()
+
 freerdp_module_add(${CODEC_SRCS})
 
 if(BUILD_TESTING)
@@ -310,8 +317,6 @@ set(PRIMITIVES_OPT_SRCS
     ${PRIMITIVES_SSE3_SRCS}
     ${PRIMITIVES_SSSE3_SRCS}
     ${PRIMITIVES_OPENCL_SRCS})
-
-freerdp_definition_add(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
 ### IPP Variable debugging
 if(WITH_IPP)

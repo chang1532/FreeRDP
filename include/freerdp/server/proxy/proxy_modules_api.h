@@ -145,7 +145,7 @@ typedef struct proxy_mouse_event_info
 	UINT16 y;
 } proxyMouseEventInfo;
 
-typedef struct channel_data_event_info
+typedef struct
 {
 	/* channel metadata */
 	const char* channel_name;
@@ -158,7 +158,7 @@ typedef struct channel_data_event_info
 	UINT32 flags;
 } proxyChannelDataEventInfo;
 
-typedef enum proxy_fetch_target_method
+typedef enum
 {
 	PROXY_FETCH_TARGET_METHOD_DEFAULT,
 	PROXY_FETCH_TARGET_METHOD_CONFIG,
@@ -166,7 +166,7 @@ typedef enum proxy_fetch_target_method
 	PROXY_FETCH_TARGET_USE_CUSTOM_ADDR
 } ProxyFetchTargetMethod;
 
-typedef struct fetch_target_event_info
+typedef struct
 {
 	/* out values */
 	char* target_address;

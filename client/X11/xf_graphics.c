@@ -19,9 +19,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -31,6 +29,7 @@
 #endif
 
 #include <winpr/crt.h>
+#include <winpr/assert.h>
 
 #include <freerdp/codec/bitmap.h>
 #include <freerdp/codec/rfx.h>
@@ -52,12 +51,12 @@ BOOL xf_decode_color(xfContext* xfc, const UINT32 srcColor, XColor* color)
 	if (!xfc || !color)
 		return FALSE;
 
-	gdi = xfc->context.gdi;
+	gdi = xfc->common.context.gdi;
 
 	if (!gdi)
 		return FALSE;
 
-	settings = xfc->context.settings;
+	settings = xfc->common.context.settings;
 
 	if (!settings)
 		return FALSE;
@@ -248,7 +247,7 @@ static BOOL _xf_Pointer_GetCursorForCurrentScale(rdpContext* context, const rdpP
 	if (!context || !pointer || !context->gdi)
 		return FALSE;
 
-	settings = xfc->context.settings;
+	settings = xfc->common.context.settings;
 
 	if (!settings)
 		return FALSE;
@@ -734,6 +733,8 @@ UINT32 xf_get_local_color_format(xfContext* xfc, BOOL aligned)
 
 	if (xfc->depth == 32)
 		DstFormat = (!invert) ? PIXEL_FORMAT_RGBA32 : PIXEL_FORMAT_BGRA32;
+	else if (xfc->depth == 30)
+		DstFormat = (!invert) ? PIXEL_FORMAT_RGBX32_DEPTH30 : PIXEL_FORMAT_BGRX32_DEPTH30;
 	else if (xfc->depth == 24)
 	{
 		if (aligned)

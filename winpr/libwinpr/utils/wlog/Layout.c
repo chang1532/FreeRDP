@@ -17,9 +17,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <winpr/config.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -33,7 +31,7 @@
 
 #include "wlog.h"
 
-#include "wlog/Layout.h"
+#include "Layout.h"
 
 #if defined __linux__ && !defined ANDROID
 #include <unistd.h>

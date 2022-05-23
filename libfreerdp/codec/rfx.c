@@ -19,9 +19,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <winpr/assert.h>
 #include <stdio.h>
@@ -437,11 +435,8 @@ static BOOL rfx_process_message_sync(RFX_CONTEXT* context, wStream* s)
 	context->decodedHeaderBlocks &= ~RFX_DECODED_SYNC;
 
 	/* RFX_SYNC */
-	if (Stream_GetRemainingLength(s) < 6)
-	{
-		WLog_ERR(TAG, "RfxSync packet too small");
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 6))
 		return FALSE;
-	}
 
 	Stream_Read_UINT32(s, magic); /* magic (4 bytes), 0xCACCACCA */
 	if (magic != WF_MAGIC)
@@ -467,11 +462,8 @@ static BOOL rfx_process_message_codec_versions(RFX_CONTEXT* context, wStream* s)
 	BYTE numCodecs;
 	context->decodedHeaderBlocks &= ~RFX_DECODED_VERSIONS;
 
-	if (Stream_GetRemainingLength(s) < 4)
-	{
-		WLog_ERR(TAG, "%s: packet too small for reading codec versions", __FUNCTION__);
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 4))
 		return FALSE;
-	}
 
 	Stream_Read_UINT8(s, numCodecs);         /* numCodecs (1 byte), must be set to 0x01 */
 	Stream_Read_UINT8(s, context->codec_id); /* codecId (1 byte), must be set to 0x01 */
@@ -509,11 +501,8 @@ static BOOL rfx_process_message_channels(RFX_CONTEXT* context, wStream* s)
 	BYTE numChannels;
 	context->decodedHeaderBlocks &= ~RFX_DECODED_CHANNELS;
 
-	if (Stream_GetRemainingLength(s) < 1)
-	{
-		WLog_ERR(TAG, "RfxMessageChannels packet too small");
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 1))
 		return FALSE;
-	}
 
 	Stream_Read_UINT8(s, numChannels); /* numChannels (1 byte), must bet set to 0x01 */
 
@@ -526,12 +515,8 @@ static BOOL rfx_process_message_channels(RFX_CONTEXT* context, wStream* s)
 		return FALSE;
 	}
 
-	if (Stream_GetRemainingLength(s) / 5 < numChannels)
-	{
-		WLog_ERR(TAG, "RfxMessageChannels packet too small for numChannels=%" PRIu8 "",
-		         numChannels);
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 5ull * numChannels))
 		return FALSE;
-	}
 
 	/* RFX_CHANNELT */
 	Stream_Read_UINT8(s, channelId); /* channelId (1 byte), must be set to 0x00 */
@@ -568,11 +553,8 @@ static BOOL rfx_process_message_context(RFX_CONTEXT* context, wStream* s)
 	UINT16 properties;
 	context->decodedHeaderBlocks &= ~RFX_DECODED_CONTEXT;
 
-	if (Stream_GetRemainingLength(s) < 5)
-	{
-		WLog_ERR(TAG, "RfxMessageContext packet too small");
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 5))
 		return FALSE;
-	}
 
 	Stream_Read_UINT8(s, ctxId);     /* ctxId (1 byte), must be set to 0x00 */
 	Stream_Read_UINT16(s, tileSize); /* tileSize (2 bytes), must be set to CT_TILE_64x64 (0x0040) */
@@ -627,11 +609,8 @@ static BOOL rfx_process_message_frame_begin(RFX_CONTEXT* context, RFX_MESSAGE* m
 
 	*pExpectedBlockType = WBT_REGION;
 
-	if (Stream_GetRemainingLength(s) < 6)
-	{
-		WLog_ERR(TAG, "RfxMessageFrameBegin packet too small");
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 6))
 		return FALSE;
-	}
 
 	Stream_Read_UINT32(
 	    s, frameIdx); /* frameIdx (4 bytes), if codec is in video mode, must be ignored */
@@ -672,11 +651,8 @@ static BOOL rfx_process_message_region(RFX_CONTEXT* context, RFX_MESSAGE* messag
 
 	*pExpectedBlockType = WBT_EXTENSION;
 
-	if (Stream_GetRemainingLength(s) < 3)
-	{
-		WLog_ERR(TAG, "%s: packet too small (regionFlags/numRects)", __FUNCTION__);
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 3))
 		return FALSE;
-	}
 
 	Stream_Seek_UINT8(s);                     /* regionFlags (1 byte) */
 	Stream_Read_UINT16(s, message->numRects); /* numRects (2 bytes) */
@@ -702,12 +678,8 @@ static BOOL rfx_process_message_region(RFX_CONTEXT* context, RFX_MESSAGE* messag
 		return TRUE;
 	}
 
-	if (Stream_GetRemainingLength(s) / 8 < message->numRects)
-	{
-		WLog_ERR(TAG, "%s: packet too small for num_rects=%" PRIu16 "", __FUNCTION__,
-		         message->numRects);
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 8ull * message->numRects))
 		return FALSE;
-	}
 
 	tmpRects = realloc(message->rects, message->numRects * sizeof(RFX_RECT));
 	if (!tmpRects)
@@ -728,11 +700,8 @@ static BOOL rfx_process_message_region(RFX_CONTEXT* context, RFX_MESSAGE* messag
 		           rect->y, rect->width, rect->height);
 	}
 
-	if (Stream_GetRemainingLength(s) < 4)
-	{
-		WLog_ERR(TAG, "%s: packet too small (regionType/numTileSets)", __FUNCTION__);
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 4))
 		return FALSE;
-	}
 
 	Stream_Read_UINT16(s, regionType);  /*regionType (2 bytes): MUST be set to CBT_REGION (0xCAC1)*/
 	Stream_Read_UINT16(s, numTileSets); /*numTilesets (2 bytes): MUST be set to 0x0001.*/
@@ -752,12 +721,11 @@ static BOOL rfx_process_message_region(RFX_CONTEXT* context, RFX_MESSAGE* messag
 	return TRUE;
 }
 
-struct _RFX_TILE_PROCESS_WORK_PARAM
+typedef struct
 {
 	RFX_TILE* tile;
 	RFX_CONTEXT* context;
-};
-typedef struct _RFX_TILE_PROCESS_WORK_PARAM RFX_TILE_PROCESS_WORK_PARAM;
+} RFX_TILE_PROCESS_WORK_PARAM;
 
 static void CALLBACK rfx_process_message_tile_work_callback(PTP_CALLBACK_INSTANCE instance,
                                                             void* context, PTP_WORK work)
@@ -791,11 +759,8 @@ static BOOL rfx_process_message_tileset(RFX_CONTEXT* context, RFX_MESSAGE* messa
 
 	*pExpectedBlockType = WBT_FRAME_END;
 
-	if (Stream_GetRemainingLength(s) < 14)
-	{
-		WLog_ERR(TAG, "RfxMessageTileSet packet too small");
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 14))
 		return FALSE;
-	}
 
 	Stream_Read_UINT16(s, subtype); /* subtype (2 bytes) must be set to CBT_TILESET (0xCAC2) */
 	if (subtype != CBT_TILESET)
@@ -830,12 +795,8 @@ static BOOL rfx_process_message_tileset(RFX_CONTEXT* context, RFX_MESSAGE* messa
 	quants = context->quants = (UINT32*)pmem;
 
 	/* quantVals */
-	if (Stream_GetRemainingLength(s) / 5 < context->numQuant)
-	{
-		WLog_ERR(TAG, "RfxMessageTileSet packet too small for num_quants=%" PRIu8 "",
-		         context->numQuant);
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 5ull * context->numQuant))
 		return FALSE;
-	}
 
 	for (i = 0; i < context->numQuant; i++)
 	{
@@ -919,7 +880,7 @@ static BOOL rfx_process_message_tileset(RFX_CONTEXT* context, RFX_MESSAGE* messa
 			message->tiles[i] = tile;
 
 			/* RFX_TILE */
-			if (Stream_GetRemainingLength(s) < 6)
+			if (!Stream_CheckAndLogRequiredLength(TAG, s, 6))
 			{
 				WLog_ERR(TAG, "RfxMessageTileSet packet too small to read tile %d/%" PRIu16 "", i,
 				         message->numTiles);
@@ -937,7 +898,7 @@ static BOOL rfx_process_message_tileset(RFX_CONTEXT* context, RFX_MESSAGE* messa
 				rc = FALSE;
 				break;
 			}
-			if ((blockLen < 6 + 13) || (Stream_GetRemainingLength(sub) < blockLen - 6))
+			if ((blockLen < 6 + 13) || (!Stream_CheckAndLogRequiredLength(TAG, sub, blockLen - 6)))
 			{
 				WLog_ERR(TAG,
 				         "RfxMessageTileSet not enough bytes to read tile %d/%" PRIu16
@@ -1076,11 +1037,8 @@ BOOL rfx_process_message(RFX_CONTEXT* context, const BYTE* data, UINT32 length, 
 			return FALSE;
 		}
 
-		if (Stream_GetRemainingLength(s) < blockLen - 6)
-		{
-			WLog_ERR(TAG, "%s: packet too small for blocklen=%" PRIu32 "", __FUNCTION__, blockLen);
+		if (!Stream_CheckAndLogRequiredLength(TAG, s, blockLen - 6))
 			return FALSE;
-		}
 
 		if (blockType > WBT_CONTEXT && context->decodedHeaderBlocks != RFX_DECODED_HEADERS)
 		{
@@ -1094,7 +1052,7 @@ BOOL rfx_process_message(RFX_CONTEXT* context, const BYTE* data, UINT32 length, 
 			UINT8 codecId;
 			UINT8 channelId;
 
-			if (Stream_GetRemainingLength(s) < 2)
+			if (!Stream_CheckAndLogRequiredLength(TAG, s, 2))
 				return FALSE;
 
 			extraBlockLen = 2;
@@ -1237,6 +1195,9 @@ BOOL rfx_process_message(RFX_CONTEXT* context, const BYTE* data, UINT32 length, 
 				                        NULL, FREERDP_FLIP_NONE))
 				{
 					region16_uninit(&updateRegion);
+					WLog_ERR(TAG,
+					         "nbUpdateRectx[% " PRIu32 " (%" PRIu32 ")] freerdp_image_copy failed",
+					         j, nbUpdateRects);
 					return FALSE;
 				}
 
@@ -1251,6 +1212,7 @@ BOOL rfx_process_message(RFX_CONTEXT* context, const BYTE* data, UINT32 length, 
 		return TRUE;
 	}
 
+	WLog_ERR(TAG, "%s failed", __FUNCTION__);
 	return FALSE;
 }
 
@@ -1400,7 +1362,7 @@ static BOOL rfx_write_tile(RFX_CONTEXT* context, wStream* s, RFX_TILE* tile)
 	return TRUE;
 }
 
-struct _RFX_TILE_COMPOSE_WORK_PARAM
+struct S_RFX_TILE_COMPOSE_WORK_PARAM
 {
 	RFX_TILE* tile;
 	RFX_CONTEXT* context;

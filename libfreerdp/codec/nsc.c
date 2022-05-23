@@ -20,9 +20,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,6 +35,9 @@
 #include "nsc_encode.h"
 
 #include "nsc_sse2.h"
+
+#include <freerdp/log.h>
+#define TAG FREERDP_TAG("codec.nsc")
 
 #ifndef NSC_INIT_SIMD
 #define NSC_INIT_SIMD(_nsc_context) \
@@ -221,7 +222,7 @@ static BOOL nsc_stream_initialize(NSC_CONTEXT* context, wStream* s)
 {
 	int i;
 
-	if (Stream_GetRemainingLength(s) < 20)
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 20))
 		return FALSE;
 
 	for (i = 0; i < 4; i++)

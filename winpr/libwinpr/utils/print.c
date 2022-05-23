@@ -17,9 +17,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <winpr/config.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -29,7 +27,7 @@
 #include <winpr/crt.h>
 #include <winpr/print.h>
 
-#include "trio.h"
+#include "trio/trio.h"
 
 #include "../log.h"
 
@@ -131,11 +129,11 @@ fail:
 	free(buffer);
 }
 
-void winpr_CArrayDump(const char* tag, UINT32 level, const BYTE* data, int length, int width)
+void winpr_CArrayDump(const char* tag, UINT32 level, const BYTE* data, size_t length, size_t width)
 {
 	const BYTE* p = data;
-	int i, line, offset = 0;
-	const size_t llen = ((length > width) ? width : length) * 4 + 1;
+	size_t i, offset = 0;
+	const size_t llen = ((length > width) ? width : length) * 4ull + 1ull;
 	size_t pos;
 	char* buffer = malloc(llen);
 
@@ -147,7 +145,7 @@ void winpr_CArrayDump(const char* tag, UINT32 level, const BYTE* data, int lengt
 
 	while (offset < length)
 	{
-		line = length - offset;
+		size_t line = length - offset;
 
 		if (line > width)
 			line = width;

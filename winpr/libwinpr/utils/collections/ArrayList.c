@@ -17,9 +17,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <winpr/config.h>
 
 #include <stdarg.h>
 
@@ -31,7 +29,7 @@
 #define va_copy(dest, src) (dest = src)
 #endif
 
-struct _wArrayList
+struct s_wArrayList
 {
 	size_t capacity;
 	size_t growthFactor;

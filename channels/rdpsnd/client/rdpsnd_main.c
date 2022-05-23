@@ -22,9 +22,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #ifndef _WIN32
 #include <sys/time.h>
@@ -51,25 +49,23 @@
 #include "rdpsnd_common.h"
 #include "rdpsnd_main.h"
 
-struct _RDPSND_CHANNEL_CALLBACK
+typedef struct
 {
 	IWTSVirtualChannelCallback iface;
 
 	IWTSPlugin* plugin;
 	IWTSVirtualChannelManager* channel_mgr;
 	IWTSVirtualChannel* channel;
-};
-typedef struct _RDPSND_CHANNEL_CALLBACK RDPSND_CHANNEL_CALLBACK;
+} RDPSND_CHANNEL_CALLBACK;
 
-struct _RDPSND_LISTENER_CALLBACK
+typedef struct
 {
 	IWTSListenerCallback iface;
 
 	IWTSPlugin* plugin;
 	IWTSVirtualChannelManager* channel_mgr;
 	RDPSND_CHANNEL_CALLBACK* channel_callback;
-};
-typedef struct _RDPSND_LISTENER_CALLBACK RDPSND_LISTENER_CALLBACK;
+} RDPSND_LISTENER_CALLBACK;
 
 struct rdpsnd_plugin
 {
@@ -280,7 +276,7 @@ static UINT rdpsnd_recv_server_audio_formats_pdu(rdpsndPlugin* rdpsnd, wStream* 
 	rdpsnd->NumberOfServerFormats = 0;
 	rdpsnd->ServerFormats = NULL;
 
-	if (Stream_GetRemainingLength(s) < 30)
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 30))
 		return ERROR_BAD_LENGTH;
 
 	/* http://msdn.microsoft.com/en-us/library/cc240956.aspx */
@@ -294,7 +290,7 @@ static UINT rdpsnd_recv_server_audio_formats_pdu(rdpsndPlugin* rdpsnd, wStream* 
 	Stream_Seek_UINT8(s);                   /* bPad */
 	rdpsnd->NumberOfServerFormats = wNumberOfFormats;
 
-	if (Stream_GetRemainingLength(s) / 14 < wNumberOfFormats)
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 14ull * wNumberOfFormats))
 		return ERROR_BAD_LENGTH;
 
 	rdpsnd->ServerFormats = audio_formats_new(wNumberOfFormats);
@@ -370,7 +366,7 @@ static UINT rdpsnd_recv_training_pdu(rdpsndPlugin* rdpsnd, wStream* s)
 	WINPR_ASSERT(rdpsnd);
 	WINPR_ASSERT(s);
 
-	if (Stream_GetRemainingLength(s) < 4)
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 4))
 		return ERROR_BAD_LENGTH;
 
 	Stream_Read_UINT16(s, wTimeStamp);
@@ -445,7 +441,7 @@ static UINT rdpsnd_recv_wave_info_pdu(rdpsndPlugin* rdpsnd, wStream* s, UINT16 B
 	WINPR_ASSERT(rdpsnd);
 	WINPR_ASSERT(s);
 
-	if (Stream_GetRemainingLength(s) < 12)
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 12))
 		return ERROR_BAD_LENGTH;
 
 	rdpsnd->wArrivalTime = GetTickCount64();
@@ -595,7 +591,7 @@ static UINT rdpsnd_treat_wave(rdpsndPlugin* rdpsnd, wStream* s, size_t size)
 	UINT64 diffMS, ts;
 	UINT latency = 0;
 
-	if (Stream_GetRemainingLength(s) < size)
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, size))
 		return ERROR_BAD_LENGTH;
 
 	if (rdpsnd->wCurrentFormatNo >= rdpsnd->NumberOfClientFormats)
@@ -655,7 +651,7 @@ static UINT rdpsnd_recv_wave_pdu(rdpsndPlugin* rdpsnd, wStream* s)
 	 * to be filled with the first four bytes of the audio sample data sent as
 	 * part of the preceding Wave Info PDU.
 	 */
-	if (Stream_GetRemainingLength(s) < 4)
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 4))
 		return ERROR_INVALID_DATA;
 
 	CopyMemory(Stream_Buffer(s), rdpsnd->waveData, 4);
@@ -668,7 +664,7 @@ static UINT rdpsnd_recv_wave2_pdu(rdpsndPlugin* rdpsnd, wStream* s, UINT16 BodyS
 	AUDIO_FORMAT* format;
 	UINT32 dwAudioTimeStamp;
 
-	if (Stream_GetRemainingLength(s) < 12)
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 12))
 		return ERROR_BAD_LENGTH;
 
 	Stream_Read_UINT16(s, rdpsnd->wTimeStamp);
@@ -714,7 +710,7 @@ static UINT rdpsnd_recv_volume_pdu(rdpsndPlugin* rdpsnd, wStream* s)
 	BOOL rc = FALSE;
 	UINT32 dwVolume;
 
-	if (Stream_GetRemainingLength(s) < 4)
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 4))
 		return ERROR_BAD_LENGTH;
 
 	Stream_Read_UINT32(s, dwVolume);
@@ -749,7 +745,7 @@ static UINT rdpsnd_recv_pdu(rdpsndPlugin* rdpsnd, wStream* s)
 		goto out;
 	}
 
-	if (Stream_GetRemainingLength(s) < 4)
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 4))
 	{
 		status = ERROR_BAD_LENGTH;
 		goto out;
@@ -1234,6 +1230,25 @@ fail:
 	return CHANNEL_RC_NO_MEMORY;
 }
 
+static void cleanup_internals(rdpsndPlugin* rdpsnd)
+{
+	if (!rdpsnd)
+		return;
+
+	if (rdpsnd->pool)
+		StreamPool_Return(rdpsnd->pool, rdpsnd->data_in);
+
+	audio_formats_free(rdpsnd->ClientFormats, rdpsnd->NumberOfClientFormats);
+	audio_formats_free(rdpsnd->ServerFormats, rdpsnd->NumberOfServerFormats);
+
+	rdpsnd->NumberOfClientFormats = 0;
+	rdpsnd->ClientFormats = NULL;
+	rdpsnd->NumberOfServerFormats = 0;
+	rdpsnd->ServerFormats = NULL;
+
+	rdpsnd->data_in = NULL;
+}
+
 /**
  * Function description
  *
@@ -1263,15 +1278,7 @@ static UINT rdpsnd_virtual_channel_event_disconnected(rdpsndPlugin* rdpsnd)
 
 	}
 
-	if (rdpsnd->pool)
-		StreamPool_Return(rdpsnd->pool, rdpsnd->data_in);
-
-	audio_formats_free(rdpsnd->ClientFormats, rdpsnd->NumberOfClientFormats);
-	rdpsnd->NumberOfClientFormats = 0;
-	rdpsnd->ClientFormats = NULL;
-	audio_formats_free(rdpsnd->ServerFormats, rdpsnd->NumberOfServerFormats);
-	rdpsnd->NumberOfServerFormats = 0;
-	rdpsnd->ServerFormats = NULL;
+	cleanup_internals(rdpsnd);
 
 	if (rdpsnd->device)
 	{
@@ -1588,17 +1595,8 @@ static UINT rdpsnd_on_close(IWTSVirtualChannelCallback* pChannelCallback)
 	if (rdpsnd->device)
 		IFCALL(rdpsnd->device->Close, rdpsnd->device);
 
-	if (rdpsnd->pool)
-	{
-		StreamPool_Return(rdpsnd->pool, rdpsnd->data_in);
-	}
+	cleanup_internals(rdpsnd);
 
-	audio_formats_free(rdpsnd->ClientFormats, rdpsnd->NumberOfClientFormats);
-	rdpsnd->NumberOfClientFormats = 0;
-	rdpsnd->ClientFormats = NULL;
-	audio_formats_free(rdpsnd->ServerFormats, rdpsnd->NumberOfServerFormats);
-	rdpsnd->NumberOfServerFormats = 0;
-	rdpsnd->ServerFormats = NULL;
 	if (rdpsnd->device)
 	{
 		IFCALL(rdpsnd->device->Free, rdpsnd->device);

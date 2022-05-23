@@ -17,9 +17,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <winpr/crt.h>
 #include <winpr/print.h>
@@ -37,7 +35,7 @@
 	  0x07FFF000) >>                                                      \
 	 12)
 
-struct _MPPC_CONTEXT
+struct s_MPPC_CONTEXT
 {
 	wBitStream* bs;
 	BOOL Compressor;
@@ -86,8 +84,8 @@ static const UINT32 MPPC_MATCH_TABLE[256] = {
 
 //#define DEBUG_MPPC	1
 
-int mppc_decompress(MPPC_CONTEXT* mppc, const BYTE* pSrcData, UINT32 SrcSize, BYTE** ppDstData,
-                    UINT32* pDstSize, UINT32 flags)
+int mppc_decompress(MPPC_CONTEXT* mppc, const BYTE* pSrcData, UINT32 SrcSize,
+                    const BYTE** ppDstData, UINT32* pDstSize, UINT32 flags)
 {
 	BYTE Literal;
 	BYTE* SrcPtr;

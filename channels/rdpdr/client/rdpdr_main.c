@@ -22,19 +22,19 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <winpr/crt.h>
+#include <winpr/sysinfo.h>
 #include <winpr/assert.h>
 #include <winpr/stream.h>
 
 #include <winpr/print.h>
+#include <winpr/sspicli.h>
 
 #include <freerdp/types.h>
 #include <freerdp/constants.h>
@@ -71,14 +71,13 @@
 
 #include "rdpdr_main.h"
 
-typedef struct _DEVICE_DRIVE_EXT DEVICE_DRIVE_EXT;
 /* IMPORTANT: Keep in sync with DRIVE_DEVICE */
-struct _DEVICE_DRIVE_EXT
+typedef struct
 {
 	DEVICE device;
 	WCHAR* path;
 	BOOL automount;
-};
+} DEVICE_DRIVE_EXT;
 
 static const char* rdpdr_device_type_string(UINT32 type)
 {
@@ -425,7 +424,7 @@ static UINT drive_hotplug_thread_terminate(rdpdrPlugin* rdpdr)
 
 #define MAX_USB_DEVICES 100
 
-typedef struct _hotplug_dev
+typedef struct
 {
 	char* path;
 	BOOL to_add;
@@ -646,16 +645,13 @@ static BOOL isAutomountLocation(const char* path)
 {
 	const size_t nrLocations = sizeof(automountLocations) / sizeof(automountLocations[0]);
 	size_t x;
-	char buffer[MAX_PATH];
+	char buffer[MAX_PATH] = { 0 };
 	uid_t uid = getuid();
 	char uname[MAX_PATH] = { 0 };
+	ULONG size = sizeof(uname) - 1;
 
-#ifndef HAVE_GETLOGIN_R
-	strncpy(uname, getlogin(), sizeof(uname));
-#else
-	if (getlogin_r(uname, sizeof(uname)) != 0)
+	if (!GetUserNameExA(NameSamCompatible, uname, &size))
 		return FALSE;
-#endif
 
 	if (!path)
 		return FALSE;
@@ -697,7 +693,7 @@ static BOOL isAutomountLocation(const char* path)
 
 #define MAX_USB_DEVICES 100
 
-typedef struct _hotplug_dev
+typedef struct
 {
 	char* path;
 	BOOL to_add;
@@ -711,7 +707,7 @@ static void handle_mountpoint(hotplug_dev* dev_array, size_t* size, const char* 
 	if (isAutomountLocation(mountpoint) && (*size < MAX_USB_DEVICES))
 	{
 		dev_array[*size].path = _strdup(mountpoint);
-		dev_array[*size + 1].to_add = TRUE;
+		dev_array[*size].to_add = TRUE;
 		(*size)++;
 	}
 }
@@ -1068,7 +1064,9 @@ static UINT rdpdr_process_connect(rdpdrPlugin* rdpdr)
 		return CHANNEL_RC_NO_MEMORY;
 	}
 
-	settings = (rdpSettings*)rdpdr->channelEntryPoints.pExtendedData;
+	WINPR_ASSERT(rdpdr->rdpcontext);
+	settings = rdpdr->rdpcontext->settings;
+	WINPR_ASSERT(settings);
 
 	if (settings->ClientHostname)
 		strncpy(rdpdr->computerName, settings->ClientHostname, sizeof(rdpdr->computerName) - 1);
@@ -1124,7 +1122,7 @@ static UINT rdpdr_process_server_announce_request(rdpdrPlugin* rdpdr, wStream* s
 	WINPR_ASSERT(rdpdr);
 	WINPR_ASSERT(s);
 
-	if (Stream_GetRemainingLength(s) < 8)
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 8))
 		return ERROR_INVALID_DATA;
 
 	Stream_Read_UINT16(s, rdpdr->versionMajor);
@@ -1175,7 +1173,10 @@ static UINT rdpdr_send_client_name_request(rdpdrPlugin* rdpdr)
 	WINPR_ASSERT(rdpdr);
 
 	if (!rdpdr->computerName[0])
-		gethostname(rdpdr->computerName, sizeof(rdpdr->computerName) - 1);
+	{
+		DWORD size = sizeof(rdpdr->computerName) - 1;
+		GetComputerNameA(rdpdr->computerName, &size);
+	}
 
 	computerNameLenW = ConvertToUnicode(CP_UTF8, 0, rdpdr->computerName, -1, &computerNameW, 0) * 2;
 	WINPR_ASSERT(computerNameLenW >= 0);
@@ -1208,7 +1209,7 @@ static UINT rdpdr_process_server_clientid_confirm(rdpdrPlugin* rdpdr, wStream* s
 	WINPR_ASSERT(rdpdr);
 	WINPR_ASSERT(s);
 
-	if (Stream_GetRemainingLength(s) < 8)
+	if (!Stream_CheckAndLogRequiredLength(TAG, s, 8))
 		return ERROR_INVALID_DATA;
 
 	Stream_Read_UINT16(s, versionMajor);

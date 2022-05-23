@@ -21,9 +21,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <freerdp/codec/interleaved.h>
 #include <freerdp/log.h>
@@ -323,6 +321,16 @@ static INLINE void write_pixel_16(BYTE* _buf, UINT16 _pix)
 #undef ENSURE_CAPACITY
 #define ENSURE_CAPACITY(_start, _end, _size) ensure_capacity(_start, _end, _size, 3)
 #include "include/bitmap.c"
+
+struct S_BITMAP_INTERLEAVED_CONTEXT
+{
+	BOOL Compressor;
+
+	UINT32 TempSize;
+	BYTE* TempBuffer;
+
+	wStream* bts;
+};
 
 BOOL interleaved_decompress(BITMAP_INTERLEAVED_CONTEXT* interleaved, const BYTE* pSrcData,
                             UINT32 SrcSize, UINT32 nSrcWidth, UINT32 nSrcHeight, UINT32 bpp,

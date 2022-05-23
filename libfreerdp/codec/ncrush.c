@@ -19,9 +19,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <winpr/crt.h>
 #include <winpr/print.h>
@@ -32,7 +30,7 @@
 
 #define TAG FREERDP_TAG("codec")
 
-struct _NCRUSH_CONTEXT
+struct s_NCRUSH_CONTEXT
 {
 	BOOL Compressor;
 	BYTE* HistoryPtr;
@@ -1991,7 +1989,7 @@ static INLINE void NCrushWriteFinish(BYTE** DstPtr, UINT32 accumulator)
 }
 
 int ncrush_decompress(NCRUSH_CONTEXT* ncrush, const BYTE* pSrcData, UINT32 SrcSize,
-                      BYTE** ppDstData, UINT32* pDstSize, UINT32 flags)
+                      const BYTE** ppDstData, UINT32* pDstSize, UINT32 flags)
 {
 	UINT32 index;
 	UINT32 bits;

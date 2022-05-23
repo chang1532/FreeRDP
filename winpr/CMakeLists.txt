@@ -19,6 +19,10 @@ if (NOT FREERDP_UNIFIED_BUILD)
 	cmake_minimum_required(VERSION 3.4)
 	project(WinPR LANGUAGES C)
 
+	set(CMAKE_C_STANDARD 99)
+	set(CMAKE_C_STANDARD_REQUIRED ON)
+	set(CMAKE_C_EXTENSIONS ON)
+
 	set(CMAKE_COLOR_MAKEFILE ON)
 	option(WITH_LIBRARY_VERSIONING "Use library version triplet" ON)
 
@@ -48,6 +52,29 @@ option(WITH_NATIVE_SSPI "Use native SSPI modules" ${NATIVE_SSPI})
 option(WITH_SMARTCARD_INSPECT "Enable SmartCard API Inspector" OFF)
 option(WITH_DEBUG_MUTEX "Print mutex debug messages" ${DEFAULT_DEBUG_OPTION})
 option(WITH_ICU "Use ICU for unicode conversion" OFF)
+option(WITH_GSSAPI "Compile support for kerberos authentication. (EXPERIMENTAL)" OFF)
+if ( (WITH_GSSAPI) AND (NOT GSS_FOUND))
+	message(WARNING "-DWITH_GSSAPI=ON is set, but not GSSAPI implementation was found, disabling")
+elseif(WITH_GSSAPI)
+	if(GSS_FLAVOUR STREQUAL "MIT")
+		add_definitions("-DWITH_GSSAPI -DWITH_GSSAPI_MIT")
+		if(GSS_VERSION_1_13)
+			add_definitions("-DHAVE_AT_LEAST_KRB_V1_13")
+		endif()
+		include_directories(${_GSS_INCLUDE_DIR})
+	elseif(GSS_FLAVOUR STREQUAL "Heimdal")
+		add_definitions("-DWITH_GSSAPI -DWITH_GSSAPI_HEIMDAL")
+		include_directories(${_GSS_INCLUDE_DIR})
+	else()
+		message(WARNING "Kerberos version not detected")
+	endif()
+endif()
+
+include(CMakeDependentOption)
+CMAKE_DEPENDENT_OPTION(WITH_GSS_NO_NTLM_FALLBACK "Do not fall back to NTLM if no kerberos ticket available" OFF "WITH_GSSAPI" OFF)
+if (WITH_GSS_NO_NTLM_FALLBACK)
+	add_definitions("-DWITH_GSS_NO_NTLM_FALLBACK")
+endif()
 
 option(WITH_DEBUG_NTLM "Print NTLM debug messages" ${DEFAULT_DEBUG_OPTION})
 if(WITH_DEBUG_NTLM)
@@ -158,6 +185,10 @@ if(NOT IOS)
 	if (HAVE_SYS_EVENTFD_H)
 		check_symbol_exists(eventfd_read sys/eventfd.h WITH_EVENTFD_READ_WRITE)
 	endif()
+
+	include(CheckFunctionExists)
+	check_function_exists(getlogin_r HAVE_GETLOGIN_R)
+	check_function_exists(getpwuid_r HAVE_GETPWUID_R)
 else()
 	set(HAVE_FCNTL_H 1)
 	set(HAVE_UNISTD_H 1)
@@ -212,13 +243,6 @@ set(OPENSSL_FEATURE_TYPE "RECOMMENDED")
         message(FATAL_ERROR "OpenSSL or MBedTLS are required, none enabled/found")
     endif()
 
-	# Include directories
-	include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
-
-	# Configure files
-	add_definitions("-DHAVE_CONFIG_H")
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-
 	enable_testing()
 
 	if(MSVC)
@@ -247,7 +271,7 @@ if(BUILD_SHARED_LIBS)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DWINPR_DLL")
 endif()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DWINPR_EXPORTS")
+add_definitions(-DWINPR_EXPORTS)
 
 # Enable 64bit file support on linux and FreeBSD.
 if("${CMAKE_SYSTEM_NAME}" MATCHES "Linux" OR FREEBSD)
@@ -257,7 +281,8 @@ endif()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 
-add_subdirectory(include)
+set(WINPR_INCLUDE_DIR "include/winpr${WINPR_VERSION_MAJOR}")
+
 
 add_subdirectory(libwinpr)
 
@@ -269,14 +294,14 @@ if(BUILD_TESTING)
 	add_subdirectory(test)
 endif()
 
+add_subdirectory(include)
+
 install_freerdp_man(wlog.7 7)
 # Exporting
 
 export(PACKAGE winpr)
 
 SetFreeRDPCMakeInstallDir(WINPR_CMAKE_INSTALL_DIR "WinPR${WINPR_VERSION_MAJOR}")
-
-set(WINPR_INCLUDE_DIR "include/winpr${WINPR_VERSION_MAJOR}")
 
 configure_package_config_file(WinPRConfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/WinPRConfig.cmake
 	INSTALL_DESTINATION ${WINPR_CMAKE_INSTALL_DIR}
@@ -292,4 +317,4 @@ install(EXPORT WinPRTargets DESTINATION ${WINPR_CMAKE_INSTALL_DIR})
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/winpr.pc.in ${CMAKE_CURRENT_BINARY_DIR}/winpr${WINPR_VERSION_MAJOR}.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/winpr${WINPR_VERSION_MAJOR}.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/buildflags.h.in ${CMAKE_CURRENT_BINARY_DIR}/buildflags.h)
+

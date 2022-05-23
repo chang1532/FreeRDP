@@ -13,8 +13,9 @@ package com.freerdp.freerdpcore.services;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.net.Uri;
-import androidx.collection.LongSparseArray;
 import android.util.Log;
+
+import androidx.collection.LongSparseArray;
 
 import com.freerdp.freerdpcore.application.GlobalApp;
 import com.freerdp.freerdpcore.application.SessionState;
@@ -23,7 +24,9 @@ import com.freerdp.freerdpcore.domain.ManualBookmark;
 import com.freerdp.freerdpcore.presentation.ApplicationSettingsActivity;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class LibFreeRDP
 {
@@ -72,13 +75,30 @@ public class LibFreeRDP
 
 	static
 	{
-		mHasH264 = tryLoad("openh264");
-		if (!mHasH264)
-			mHasH264 = tryLoad("avcodec");
-
 		try
 		{
 			System.loadLibrary("freerdp-android");
+			String version = freerdp_get_jni_version();
+			Pattern pattern = Pattern.compile("^(\\d+)\\.(\\d+)\\.(\\d+).*");
+			Matcher matcher = pattern.matcher(version);
+			if (!matcher.matches() || (matcher.groupCount() < 3))
+				throw new RuntimeException("APK broken: native library version " + version +
+				                           " does not meet requirements!");
+			int major = Integer.parseInt(Objects.requireNonNull(matcher.group(1)));
+			int minor = Integer.parseInt(Objects.requireNonNull(matcher.group(2)));
+			int patch = Integer.parseInt(Objects.requireNonNull(matcher.group(3)));
+
+			if (major > 2)
+				mHasH264 = freerdp_has_h264();
+			else if (minor > 5)
+				mHasH264 = freerdp_has_h264();
+			else if ((minor == 5) && (patch >= 1))
+				mHasH264 = freerdp_has_h264();
+			else
+				throw new RuntimeException("APK broken: native library version " + version +
+				                           " does not meet requirements!");
+			Log.i(TAG, "Successfully loaded native library. H264 is " +
+			               (mHasH264 ? "supported" : "not available"));
 		}
 		catch (UnsatisfiedLinkError e)
 		{
@@ -91,6 +111,8 @@ public class LibFreeRDP
 	{
 		return mHasH264;
 	}
+
+	private static native boolean freerdp_has_h264();
 
 	private static native String freerdp_get_jni_version();
 
@@ -311,7 +333,6 @@ public class LibFreeRDP
 		}
 
 		args.add(addFlag("async-channels", debug.getAsyncChannel()));
-		args.add(addFlag("async-input", debug.getAsyncInput()));
 		args.add(addFlag("async-update", debug.getAsyncUpdate()));
 
 		if (advanced.getRedirectSDCard())

@@ -22,11 +22,11 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <winpr/assert.h>
+#include <winpr/sspicli.h>
+
 #include <float.h>
 
 #include <X11/Xlib.h>
@@ -81,6 +81,7 @@
 #include <freerdp/client/cmdline.h>
 
 #include <winpr/crt.h>
+#include <winpr/assert.h>
 #include <winpr/synch.h>
 #include <winpr/file.h>
 #include <winpr/print.h>
@@ -128,7 +129,11 @@ static void xf_draw_screen_scaled(xfContext* xfc, int x, int y, int w, int h)
 	int x2;
 	int y2;
 	const char* filter;
-	rdpSettings* settings = xfc->context.settings;
+	rdpSettings* settings;
+	WINPR_ASSERT(xfc);
+
+	settings = xfc->common.context.settings;
+	WINPR_ASSERT(settings);
 
 	if (xfc->scaledWidth <= 0 || xfc->scaledHeight <= 0)
 	{
@@ -210,7 +215,12 @@ static void xf_draw_screen_scaled(xfContext* xfc, int x, int y, int w, int h)
 
 BOOL xf_picture_transform_required(xfContext* xfc)
 {
-	rdpSettings* settings = xfc->context.settings;
+	rdpSettings* settings;
+
+	WINPR_ASSERT(xfc);
+
+	settings = xfc->common.context.settings;
+	WINPR_ASSERT(settings);
 
 	if ((xfc->offset_x != 0) || (xfc->offset_y != 0) ||
 	    (xfc->scaledWidth != (INT64)settings->DesktopWidth) ||
@@ -254,7 +264,11 @@ static BOOL xf_desktop_resize(rdpContext* context)
 {
 	rdpSettings* settings;
 	xfContext* xfc = (xfContext*)context;
+
+	WINPR_ASSERT(xfc);
+
 	settings = context->settings;
+	WINPR_ASSERT(settings);
 
 	if (xfc->primary)
 	{
@@ -271,7 +285,7 @@ static BOOL xf_desktop_resize(rdpContext* context)
 
 #ifdef WITH_XRENDER
 
-	if (!xfc->context.settings->SmartSizing)
+	if (!settings->SmartSizing)
 	{
 		xfc->scaledWidth = settings->DesktopWidth;
 		xfc->scaledHeight = settings->DesktopHeight;
@@ -287,7 +301,7 @@ static BOOL xf_desktop_resize(rdpContext* context)
 	{
 #ifdef WITH_XRENDER
 
-		if (!xfc->context.settings->SmartSizing)
+		if (!settings->SmartSizing)
 #endif
 		{
 			/* Update the saved width and height values the window will be
@@ -412,7 +426,10 @@ static BOOL xf_hw_end_paint(rdpContext* context)
 	UINT32 w, h;
 	xfContext* xfc = (xfContext*)context;
 
-	if (xfc->context.gdi->suppressOutput)
+	WINPR_ASSERT(xfc);
+	WINPR_ASSERT(xfc->common.context.gdi);
+
+	if (xfc->common.context.gdi->suppressOutput)
 		return TRUE;
 
 	if (!xfc->remote_app)
@@ -477,10 +494,19 @@ static BOOL xf_hw_end_paint(rdpContext* context)
 
 static BOOL xf_hw_desktop_resize(rdpContext* context)
 {
-	rdpGdi* gdi = context->gdi;
+	rdpGdi* gdi;
 	xfContext* xfc = (xfContext*)context;
-	rdpSettings* settings = context->settings;
+	rdpSettings* settings;
 	BOOL ret = FALSE;
+
+	WINPR_ASSERT(xfc);
+
+	gdi = context->gdi;
+	WINPR_ASSERT(gdi);
+
+	settings = context->settings;
+	WINPR_ASSERT(settings);
+
 	xf_lock_x11(xfc);
 
 	if (!gdi_resize(gdi, settings->DesktopWidth, settings->DesktopHeight))
@@ -555,14 +581,19 @@ static char* xf_window_get_title(rdpSettings* settings)
 BOOL xf_create_window(xfContext* xfc)
 {
 	XGCValues gcv;
-	XEvent xevent;
+	XEvent xevent = { 0 };
 	int width, height;
 	char* windowTitle;
 	rdpGdi* gdi;
 	rdpSettings* settings;
-	settings = xfc->context.settings;
-	gdi = xfc->context.gdi;
-	ZeroMemory(&xevent, sizeof(xevent));
+
+	WINPR_ASSERT(xfc);
+	settings = xfc->common.context.settings;
+	WINPR_ASSERT(settings);
+
+	gdi = xfc->common.context.gdi;
+	WINPR_ASSERT(gdi);
+
 	width = settings->DesktopWidth;
 	height = settings->DesktopHeight;
 
@@ -649,7 +680,9 @@ BOOL xf_create_window(xfContext* xfc)
 
 	if (!xfc->image)
 	{
-		rdpGdi* cgdi = xfc->context.gdi;
+		rdpGdi* cgdi = xfc->common.context.gdi;
+		WINPR_ASSERT(cgdi);
+
 		xfc->image = XCreateImage(xfc->display, xfc->visual, xfc->depth, ZPixmap, 0,
 		                          (char*)cgdi->primary_buffer, settings->DesktopWidth,
 		                          settings->DesktopHeight, xfc->scanline_pad, cgdi->stride);
@@ -731,9 +764,7 @@ void xf_toggle_fullscreen(xfContext* xfc)
 	  to allow keyboard usage on the debugger
 	*/
 	if (xfc->debug)
-	{
-		XUngrabKeyboard(xfc->display, CurrentTime);
-	}
+		xf_ungrab(xfc);
 
 	xfc->fullscreen = (xfc->fullscreen) ? FALSE : TRUE;
 	xfc->decorations = (xfc->fullscreen) ? FALSE : settings->Decorations;
@@ -780,7 +811,9 @@ xf_encomsp_participant_created(EncomspClientContext* context,
 		return ERROR_INVALID_PARAMETER;
 
 	xfc = context->custom;
-	settings = xfc->context.settings;
+	WINPR_ASSERT(xfc);
+
+	settings = xfc->common.context.settings;
 
 	if (!settings)
 		return ERROR_INVALID_PARAMETER;
@@ -939,6 +972,7 @@ static int _xf_error_handler(Display* d, XErrorEvent* ev)
 	 */
 
 	XUngrabKeyboard(d, CurrentTime);
+	XUngrabPointer(d, CurrentTime);
 	return xf_error_handler(d, ev);
 }
 
@@ -1106,6 +1140,10 @@ static void xf_button_map_init(xfContext* xfc)
 	/* logical mouse button which is used for each physical mouse  */
 	/* button (indexed from zero). This is the default map.        */
 	unsigned char x11_map[112] = { 0 };
+
+	WINPR_ASSERT(xfc);
+	WINPR_ASSERT(xfc->common.context.settings);
+
 	x11_map[0] = Button1;
 	x11_map[1] = Button2;
 	x11_map[2] = Button3;
@@ -1119,7 +1157,7 @@ static void xf_button_map_init(xfContext* xfc)
 	x11_map[111] = 112;
 
 	/* query system for actual remapping */
-	if (xfc->context.settings->UnmapButtons)
+	if (xfc->common.context.settings->UnmapButtons)
 	{
 		xf_get_x11_button_map(xfc, x11_map);
 	}
@@ -1163,37 +1201,39 @@ static BOOL xf_pre_connect(freerdp* instance)
 {
 	rdpChannels* channels;
 	rdpSettings* settings;
-	rdpContext* context = instance->context;
-	xfContext* xfc = (xfContext*)instance->context;
+	rdpContext* context;
+	xfContext* xfc;
 	UINT32 maxWidth = 0;
 	UINT32 maxHeight = 0;
-	settings = instance->settings;
+
+	WINPR_ASSERT(instance);
+
+	context = instance->context;
+	xfc = (xfContext*)instance->context;
+	WINPR_ASSERT(context);
+
+	settings = context->settings;
+	WINPR_ASSERT(settings);
+
 	channels = context->channels;
+	WINPR_ASSERT(channels);
+
 	settings->OsMajorType = OSMAJORTYPE_UNIX;
 	settings->OsMinorType = OSMINORTYPE_NATIVE_XSERVER;
-	PubSub_SubscribeChannelConnected(instance->context->pubSub, xf_OnChannelConnectedEventHandler);
-	PubSub_SubscribeChannelDisconnected(instance->context->pubSub,
-	                                    xf_OnChannelDisconnectedEventHandler);
+	PubSub_SubscribeChannelConnected(context->pubSub, xf_OnChannelConnectedEventHandler);
+	PubSub_SubscribeChannelDisconnected(context->pubSub, xf_OnChannelDisconnectedEventHandler);
 
-	if (!freerdp_client_load_addins(channels, instance->settings))
+	if (!freerdp_client_load_addins(channels, settings))
 		return FALSE;
 
 	if (!settings->Username && !settings->CredentialsFromStdin && !settings->SmartcardLogon)
 	{
-		int rc;
 		char login_name[MAX_PATH] = { 0 };
+		ULONG size = sizeof(login_name) - 1;
 
-#ifdef HAVE_GETLOGIN_R
-		rc = getlogin_r(login_name, sizeof(login_name));
-#else
-		strncpy(login_name, getlogin(), sizeof(login_name));
-		rc = 0;
-#endif
-		if (rc == 0)
+		if (GetUserNameExA(NameSamCompatible, login_name, &size))
 		{
-			settings->Username = _strdup(login_name);
-
-			if (!settings->Username)
+			if (!freerdp_settings_set_string(settings, FreeRDP_Username, login_name))
 				return FALSE;
 
 			WLog_INFO(TAG, "No user name set. - Using login name: %s", settings->Username);
@@ -1203,7 +1243,7 @@ static BOOL xf_pre_connect(freerdp* instance)
 	if (settings->AuthenticationOnly)
 	{
 		/* Check +auth-only has a username and password. */
-		if (!settings->Password)
+		if (!freerdp_settings_get_string(settings, FreeRDP_Password))
 		{
 			WLog_INFO(TAG, "auth-only, but no password set. Please provide one.");
 			return FALSE;
@@ -1256,10 +1296,18 @@ static BOOL xf_post_connect(freerdp* instance)
 	rdpContext* context;
 	rdpSettings* settings;
 	ResizeWindowEventArgs e;
-	xfContext* xfc = (xfContext*)instance->context;
+	xfContext* xfc;
+
+	WINPR_ASSERT(instance);
+	xfc = (xfContext*)instance->context;
 	context = instance->context;
-	settings = instance->settings;
+	WINPR_ASSERT(context);
+
+	settings = context->settings;
+	WINPR_ASSERT(settings);
+
 	update = context->update;
+	WINPR_ASSERT(update);
 
 	if (!gdi_init(instance, xf_get_local_color_format(xfc, TRUE)))
 		return FALSE;
@@ -1276,11 +1324,11 @@ static BOOL xf_post_connect(freerdp* instance)
 		}
 
 		xf_gdi_register_update_callbacks(update);
-		brush_cache_register_callbacks(instance->update);
-		glyph_cache_register_callbacks(instance->update);
-		bitmap_cache_register_callbacks(instance->update);
-		offscreen_cache_register_callbacks(instance->update);
-		palette_cache_register_callbacks(instance->update);
+		brush_cache_register_callbacks(context->update);
+		glyph_cache_register_callbacks(context->update);
+		bitmap_cache_register_callbacks(context->update);
+		offscreen_cache_register_callbacks(context->update);
+		palette_cache_register_callbacks(context->update);
 	}
 
 #ifdef WITH_XRENDER
@@ -1388,87 +1436,20 @@ static int xf_logon_error_info(freerdp* instance, UINT32 data, UINT32 type)
 	const char* str_data = freerdp_get_logon_error_info_data(data);
 	const char* str_type = freerdp_get_logon_error_info_type(type);
 	WLog_INFO(TAG, "Logon Error Info %s [%s]", str_data, str_type);
-	xf_rail_disable_remoteapp_mode(xfc);
-	return 1;
-}
-
-static DWORD WINAPI xf_input_thread(LPVOID arg)
-{
-	BOOL running = TRUE;
-	DWORD status;
-	DWORD nCount;
-	HANDLE events[3];
-	wMessage msg;
-	wMessageQueue* queue;
-	freerdp* instance = (freerdp*)arg;
-	xfContext* xfc = (xfContext*)instance->context;
-	queue = freerdp_get_message_queue(instance, FREERDP_INPUT_MESSAGE_QUEUE);
-	nCount = 0;
-	events[nCount++] = MessageQueue_Event(queue);
-	events[nCount++] = xfc->x11event;
-	events[nCount++] = instance->context->abortEvent;
-
-	while (running)
+	if(type != LOGON_MSG_SESSION_CONTINUE)
 	{
-		status = WaitForMultipleObjects(nCount, events, FALSE, INFINITE);
-
-		switch (status)
-		{
-			case WAIT_OBJECT_0:
-			case WAIT_OBJECT_0 + 1:
-			case WAIT_OBJECT_0 + 2:
-				if (WaitForSingleObject(events[0], 0) == WAIT_OBJECT_0)
-				{
-					if (MessageQueue_Peek(queue, &msg, FALSE))
-					{
-						if (msg.id == WMQ_QUIT)
-							running = FALSE;
-					}
-				}
-
-				if (WaitForSingleObject(events[1], 0) == WAIT_OBJECT_0)
-				{
-					if (!xf_process_x_events(xfc->context.instance))
-					{
-						running = FALSE;
-						break;
-					}
-				}
-
-				if (WaitForSingleObject(events[2], 0) == WAIT_OBJECT_0)
-					running = FALSE;
-
-				break;
-
-			default:
-				running = FALSE;
-				break;
-		}
+	    xf_rail_disable_remoteapp_mode(xfc);
 	}
-
-	MessageQueue_PostQuit(queue, 0);
-	freerdp_abort_connect(xfc->context.instance);
-	ExitThread(0);
-	return 0;
+	return 1;
 }
 
 static BOOL handle_window_events(freerdp* instance)
 {
-	rdpSettings* settings;
-
-	if (!instance || !instance->settings)
-		return FALSE;
-
-	settings = instance->settings;
-
-	if (!settings->AsyncInput)
-	{
 		if (!xf_process_x_events(instance))
 		{
-			WLog_INFO(TAG, "Closed from X11");
+			WLog_DBG(TAG, "Closed from X11");
 			return FALSE;
 		}
-	}
 
 	return TRUE;
 }
@@ -1491,16 +1472,23 @@ static DWORD WINAPI xf_client_thread(LPVOID param)
 	freerdp* instance;
 	rdpContext* context;
 	HANDLE inputEvent = NULL;
-	HANDLE inputThread = NULL;
 	HANDLE timer = NULL;
 	LARGE_INTEGER due;
 	rdpSettings* settings;
 	TimerEventArgs timerEvent;
+
 	EventArgsInit(&timerEvent, "xfreerdp");
 	instance = (freerdp*)param;
-	context = instance->context;
+	WINPR_ASSERT(instance);
+
 	status = freerdp_connect(instance);
+	context = instance->context;
+	WINPR_ASSERT(context);
 	xfc = (xfContext*)instance->context;
+	WINPR_ASSERT(xfc);
+
+	settings = context->settings;
+	WINPR_ASSERT(settings);
 
 	if (!status)
 	{
@@ -1597,7 +1585,7 @@ static DWORD WINAPI xf_client_thread(LPVOID param)
 		goto end;
 
 	/* --authonly ? */
-	if (instance->settings->AuthenticationOnly)
+	if (settings->AuthenticationOnly)
 	{
 		WLog_ERR(TAG, "Authentication only, exit status %" PRId32 "", !status);
 		goto disconnect;
@@ -1616,7 +1604,6 @@ static DWORD WINAPI xf_client_thread(LPVOID param)
 		goto disconnect;
 	}
 
-	settings = context->settings;
 	timer = CreateWaitableTimerA(NULL, FALSE, "mainloop-periodic-timer");
 
 	if (!timer)
@@ -1631,28 +1618,13 @@ static DWORD WINAPI xf_client_thread(LPVOID param)
 	{
 		goto disconnect;
 	}
+	inputEvent = xfc->x11event;
 
-	if (!settings->AsyncInput)
-	{
-		inputEvent = xfc->x11event;
-	}
-	else
-	{
-		if (!(inputThread = CreateThread(NULL, 0, xf_input_thread, instance, 0, NULL)))
-		{
-			WLog_ERR(TAG, "async input: failed to create input thread");
-			exit_code = XF_EXIT_UNKNOWN;
-			goto disconnect;
-		}
-	}
-
-	while (!freerdp_shall_disconnect(instance))
+	while (!freerdp_shall_disconnect_context(instance->context))
 	{
 		nCount = 0;
 		handles[nCount++] = timer;
-
-		if (!settings->AsyncInput)
-			handles[nCount++] = inputEvent;
+		handles[nCount++] = inputEvent;
 
 		/*
 		 * win8 and server 2k12 seem to have some timing issue/race condition
@@ -1718,12 +1690,6 @@ static DWORD WINAPI xf_client_thread(LPVOID param)
 		}
 	}
 
-	if (settings->AsyncInput)
-	{
-		WaitForSingleObject(inputThread, INFINITE);
-		CloseHandle(inputThread);
-	}
-
 	if (!exit_code)
 	{
 		exit_code = freerdp_error_info(instance);
@@ -1770,16 +1736,23 @@ static void xf_TerminateEventHandler(void* context, const TerminateEventArgs* e)
 {
 	rdpContext* ctx = (rdpContext*)context;
 	WINPR_UNUSED(e);
-	freerdp_abort_connect(ctx->instance);
+	freerdp_abort_connect_context(ctx);
 }
 
 #ifdef WITH_XRENDER
 static void xf_ZoomingChangeEventHandler(void* context, const ZoomingChangeEventArgs* e)
 {
+	int w, h;
+	rdpSettings* settings;
 	xfContext* xfc = (xfContext*)context;
-	rdpSettings* settings = xfc->context.settings;
-	int w = xfc->scaledWidth + e->dx;
-	int h = xfc->scaledHeight + e->dy;
+
+	WINPR_ASSERT(xfc);
+
+	settings = xfc->common.context.settings;
+	WINPR_ASSERT(settings);
+
+	w = xfc->scaledWidth + e->dx;
+	h = xfc->scaledHeight + e->dy;
 
 	if (e->dx == 0 && e->dy == 0)
 		return;
@@ -1801,7 +1774,13 @@ static void xf_ZoomingChangeEventHandler(void* context, const ZoomingChangeEvent
 static void xf_PanningChangeEventHandler(void* context, const PanningChangeEventArgs* e)
 {
 	xfContext* xfc = (xfContext*)context;
-	rdpSettings* settings = xfc->context.settings;
+	rdpSettings* settings;
+
+	WINPR_ASSERT(xfc);
+	WINPR_ASSERT(e);
+
+	settings = xfc->common.context.settings;
+	WINPR_ASSERT(settings);
 
 	if (e->dx == 0 && e->dy == 0)
 		return;
@@ -1841,25 +1820,10 @@ static int xfreerdp_client_start(rdpContext* context)
 		return -1;
 	}
 
-	if (!(xfc->thread = CreateThread(NULL, 0, xf_client_thread, context->instance, 0, NULL)))
+	if (!(xfc->common.thread = CreateThread(NULL, 0, xf_client_thread, context->instance, 0, NULL)))
 	{
 		WLog_ERR(TAG, "failed to create client thread");
 		return -1;
-	}
-
-	return 0;
-}
-
-static int xfreerdp_client_stop(rdpContext* context)
-{
-	xfContext* xfc = (xfContext*)context;
-	freerdp_abort_connect(context->instance);
-
-	if (xfc->thread)
-	{
-		WaitForSingleObject(xfc->thread, INFINITE);
-		CloseHandle(xfc->thread);
-		xfc->thread = NULL;
 	}
 
 	return 0;
@@ -2092,6 +2056,6 @@ int RdpClientEntry(RDP_CLIENT_ENTRY_POINTS* pEntryPoints)
 	pEntryPoints->ClientNew = xfreerdp_client_new;
 	pEntryPoints->ClientFree = xfreerdp_client_free;
 	pEntryPoints->ClientStart = xfreerdp_client_start;
-	pEntryPoints->ClientStop = xfreerdp_client_stop;
+	pEntryPoints->ClientStop = freerdp_client_common_stop;
 	return 0;
 }

@@ -17,9 +17,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <winpr/config.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -38,13 +36,12 @@
 
 #include "wlog.h"
 
-struct _wLogFilter
+typedef struct
 {
 	DWORD Level;
 	LPSTR* Names;
 	size_t NameCount;
-};
-typedef struct _wLogFilter wLogFilter;
+} wLogFilter;
 
 #define WLOG_FILTER_NOT_FILTERED -1
 #define WLOG_FILTER_NOT_INITIALIZED -2

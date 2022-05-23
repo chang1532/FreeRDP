@@ -17,9 +17,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <winpr/config.h>
 
 #include "schannel_openssl.h"
 
@@ -35,7 +33,7 @@
 #include <openssl/err.h>
 #include <openssl/bio.h>
 
-struct _SCHANNEL_OPENSSL
+struct S_SCHANNEL_OPENSSL
 {
 	SSL* ssl;
 	SSL_CTX* ctx;

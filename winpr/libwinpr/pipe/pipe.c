@@ -19,9 +19,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <winpr/config.h>
 
 #include <winpr/crt.h>
 #include <winpr/path.h>
@@ -73,7 +71,7 @@
 
 static wArrayList* g_NamedPipeServerSockets = NULL;
 
-typedef struct _NamedPipeServerSocketEntry
+typedef struct
 {
 	char* name;
 	int serverfd;
@@ -186,24 +184,28 @@ static BOOL PipeWrite(PVOID Object, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrit
 	return TRUE;
 }
 
-static HANDLE_OPS ops = {
-	PipeIsHandled, PipeCloseHandle,
-	PipeGetFd,     NULL, /* CleanupHandle */
-	PipeRead,      NULL, /* FileReadEx */
-	NULL,                /* FileReadScatter */
-	PipeWrite,     NULL, /* FileWriteEx */
-	NULL,                /* FileWriteGather */
-	NULL,                /* FileGetFileSize */
-	NULL,                /*  FlushFileBuffers */
-	NULL,                /* FileSetEndOfFile */
-	NULL,                /* FileSetFilePointer */
-	NULL,                /* SetFilePointerEx */
-	NULL,                /* FileLockFile */
-	NULL,                /* FileLockFileEx */
-	NULL,                /* FileUnlockFile */
-	NULL,                /* FileUnlockFileEx */
-	NULL                 /* SetFileTime */
-};
+static HANDLE_OPS ops = { PipeIsHandled,
+	                      PipeCloseHandle,
+	                      PipeGetFd,
+	                      NULL, /* CleanupHandle */
+	                      PipeRead,
+	                      NULL, /* FileReadEx */
+	                      NULL, /* FileReadScatter */
+	                      PipeWrite,
+	                      NULL, /* FileWriteEx */
+	                      NULL, /* FileWriteGather */
+	                      NULL, /* FileGetFileSize */
+	                      NULL, /*  FlushFileBuffers */
+	                      NULL, /* FileSetEndOfFile */
+	                      NULL, /* FileSetFilePointer */
+	                      NULL, /* SetFilePointerEx */
+	                      NULL, /* FileLockFile */
+	                      NULL, /* FileLockFileEx */
+	                      NULL, /* FileUnlockFile */
+	                      NULL, /* FileUnlockFileEx */
+	                      NULL  /* SetFileTime */
+	                      ,
+	                      NULL };
 
 static BOOL NamedPipeIsHandled(HANDLE handle)
 {
@@ -448,6 +450,7 @@ static HANDLE_OPS namedOps = { NamedPipeIsHandled,
 	                           NULL,
 	                           NULL,
 	                           NamedPipeWrite,
+	                           NULL,
 	                           NULL,
 	                           NULL,
 	                           NULL,

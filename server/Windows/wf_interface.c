@@ -18,9 +18,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <winpr/tchar.h>
 #include <winpr/windows.h>
@@ -117,7 +115,7 @@ static DWORD WINAPI wf_server_main_loop(LPVOID lpParam)
 			break;
 		}
 
-		status = WaitForMultipleObjects(handles, count, FALSE, INFINITE);
+		status = WaitForMultipleObjects(count, handles, FALSE, INFINITE);
 		if (status == WAIT_FAILED)
 		{
 			WLog_ERR(TAG, "WaitForMultipleObjects failed");

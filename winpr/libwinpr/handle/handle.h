@@ -66,6 +66,8 @@ typedef BOOL (*pcWriteFileGather)(HANDLE hFile, FILE_SEGMENT_ELEMENT aSegmentArr
                                   DWORD nNumberOfBytesToWrite, LPDWORD lpReserved,
                                   LPOVERLAPPED lpOverlapped);
 typedef DWORD (*pcGetFileSize)(HANDLE handle, LPDWORD lpFileSizeHigh);
+typedef BOOL (*pcGetFileInformationByHandle)(HANDLE handle,
+                                             LPBY_HANDLE_FILE_INFORMATION lpFileInformation);
 typedef BOOL (*pcFlushFileBuffers)(HANDLE hFile);
 typedef BOOL (*pcSetEndOfFile)(HANDLE handle);
 typedef DWORD (*pcSetFilePointer)(HANDLE handle, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh,
@@ -84,7 +86,7 @@ typedef BOOL (*pcUnlockFileEx)(HANDLE hFile, DWORD dwReserved, DWORD nNumberOfBy
 typedef BOOL (*pcSetFileTime)(HANDLE hFile, const FILETIME* lpCreationTime,
                               const FILETIME* lpLastAccessTime, const FILETIME* lpLastWriteTime);
 
-typedef struct _HANDLE_OPS
+typedef struct
 {
 	pcIsHandled IsHandled;
 	pcCloseHandle CloseHandle;
@@ -106,6 +108,7 @@ typedef struct _HANDLE_OPS
 	pcUnlockFile UnlockFile;
 	pcUnlockFileEx UnlockFileEx;
 	pcSetFileTime SetFileTime;
+	pcGetFileInformationByHandle GetFileInformationByHandle;
 } HANDLE_OPS;
 
 struct winpr_handle

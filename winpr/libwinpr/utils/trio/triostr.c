@@ -19,9 +19,7 @@
  * Include files
  */
 
-#if defined(HAVE_CONFIG_H)
-#include <config.h>
-#endif
+#include <winpr/config.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -108,13 +106,6 @@
 #endif
 #endif
 
-#if !defined(HAVE_CONFIG_H)
-#if !(defined(TRIO_PLATFORM_SUNOS))
-#define HAVE_TOLOWER
-#define HAVE_TOUPPER
-#endif
-#endif
-
 #if defined(USE_MATH) && !defined(TRIO_NO_POWL)
 #if !defined(HAVE_POWL)
 #if defined(PREDEF_STANDARD_C99) || defined(PREDEF_STANDARD_UNIX03)
@@ -145,7 +136,7 @@
  * Structures
  */
 
-struct _trio_string_t
+struct s_trio_string_t
 {
 	char* content;
 	size_t length;
