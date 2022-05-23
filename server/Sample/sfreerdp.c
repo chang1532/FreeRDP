@@ -44,6 +44,10 @@
 #include <freerdp/constants.h>
 #include <freerdp/server/rdpsnd.h>
 
+#include <stdlib.h>
+#include <time.h>
+#include <jansson.h>
+
 #include "sf_ainput.h"
 #include "sf_audin.h"
 #include "sf_rdpsnd.h"
@@ -973,6 +977,75 @@ fail:
 	return -1;
 }
 
+static int get_replay_dump_file(char *buf, int buflen, int *need_replay)
+{
+	json_t *js_val = NULL;
+	json_t *json_obj = NULL;
+	time_t timestamp = 0;
+	time_t cur_time = 0;
+	const char *record_name = NULL;
+
+	if (need_replay)
+	{
+		*need_replay = 0;
+	}
+
+	// 加载文件
+	json_obj = json_load_file("/data/bh_replay_server/tmp/record.info", 0, NULL);
+	if (!json_obj)
+	{
+		WLog_ERR(TAG, "load record.info failed");
+		return -1;
+	}
+
+	// 读取 record_name
+	js_val = json_object_get(json_obj, "record_name");
+	if (!js_val || json_typeof(js_val) != JSON_STRING)
+	{
+		WLog_ERR(TAG, "get JSON_STRING failed");
+		goto ERR_RET;
+	}
+
+	record_name = json_string_value(js_val);
+	if (record_name == NULL)
+	{
+		WLog_ERR(TAG, "get NULL record_name");
+		goto ERR_RET;
+	}
+
+	// 读取 timestamp
+	js_val = json_object_get(json_obj, "timestamp");
+	if (!js_val || json_typeof(js_val) != JSON_INTEGER)
+	{
+		WLog_ERR(TAG, "get timestamp failed");
+		goto ERR_RET;
+	}
+
+	cur_time = time(NULL);
+	timestamp = (long)json_integer_value(js_val);
+	WLog_INFO(TAG, "timestamp:%ld, record_name:%s", timestamp, record_name?record_name:"NULL");
+	if ((timestamp > cur_time + 180) || (timestamp < cur_time - 180))
+	{
+		WLog_ERR(TAG, "timestamp not valid, timestamp:%ld, cur_time:%ld", timestamp, cur_time);
+		return -1;
+	}
+
+	memset(buf, 0, buflen);
+	strcpy(buf, record_name);
+
+	if (need_replay)
+	{
+		*need_replay = 1;
+	}
+
+	json_decref(json_obj);
+	return 0;
+	
+ERR_RET:
+	json_decref(json_obj);
+	return -1;
+}
+
 static DWORD WINAPI test_peer_mainloop(LPVOID arg)
 {
 	BOOL rc;
@@ -986,6 +1059,8 @@ static DWORD WINAPI test_peer_mainloop(LPVOID arg)
 	rdpInput* input;
 	rdpUpdate* update;
 	freerdp_peer* client = (freerdp_peer*)arg;
+	char replay_dump[1024] = {0};
+	int need_replay = 0;
 
 	const char* key = "server.key";
 	const char* cert = "server.crt";
@@ -1007,13 +1082,15 @@ static DWORD WINAPI test_peer_mainloop(LPVOID arg)
 		cert = info->cert;
 
 	/* Initialize the real server settings here */
+	get_replay_dump_file(replay_dump, 1024, &need_replay);
+	WLog_INFO(TAG, "replay_dump:%s, need_replay:%d", replay_dump, need_replay);
 	WINPR_ASSERT(client->context);
 	settings = client->context->settings;
 	WINPR_ASSERT(settings);
-	if (info->replay_dump)
+	if (need_replay)
 	{
 		if (!freerdp_settings_set_bool(settings, FreeRDP_TransportDumpReplay, TRUE) ||
-		    !freerdp_settings_set_string(settings, FreeRDP_TransportDumpFile, info->replay_dump))
+		    !freerdp_settings_set_string(settings, FreeRDP_TransportDumpFile, replay_dump))
 		{
 			freerdp_peer_free(client);
 			return 0;
@@ -1028,7 +1105,7 @@ static DWORD WINAPI test_peer_mainloop(LPVOID arg)
 		return 0;
 	}
 
-	settings->RdpSecurity = TRUE;
+	settings->RdpSecurity = FALSE;
 	settings->TlsSecurity = TRUE;
 	settings->NlaSecurity = FALSE;
 	settings->EncryptionLevel = ENCRYPTION_LEVEL_CLIENT_COMPATIBLE;
@@ -1068,7 +1145,7 @@ static DWORD WINAPI test_peer_mainloop(LPVOID arg)
 	context = (testPeerContext*)client->context;
 	WINPR_ASSERT(context);
 
-	if (info->replay_dump)
+	if (need_replay)
 	{
 		const rdpTransportIo* cb = freerdp_get_io_callbacks(client->context);
 		rdpTransportIo replay;

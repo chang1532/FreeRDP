@@ -54,6 +54,7 @@ list(APPEND LIBS freerdp-server)
 list(APPEND LIBS winpr freerdp)
 
 target_link_libraries(${MODULE_NAME} ${LIBS})
+target_link_libraries(${MODULE_NAME} jansson)
 install(TARGETS ${MODULE_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT server)
 if (WITH_DEBUG_SYMBOLS AND MSVC)
     install(FILES ${CMAKE_PDB_BINARY_DIR}/${MODULE_NAME}.pdb DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT symbols)

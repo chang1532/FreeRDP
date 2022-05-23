@@ -66,7 +66,7 @@ static const char* rplstat[] = { "succeeded",
 	                             "Address type not supported" };
 
 static BOOL http_proxy_connect(BIO* bufferedBio, const char* proxyUsername,
-                               const char* proxyPassword, const char* hostname, UINT16 port);
+                               const char* proxyPassword, const char* hostname, UINT16 port, const char *authorization);
 static BOOL socks_proxy_connect(BIO* bufferedBio, const char* proxyUsername,
                                 const char* proxyPassword, const char* hostname, UINT16 port);
 static void proxy_read_environment(rdpSettings* settings, char* envname);
@@ -486,7 +486,7 @@ BOOL proxy_connect(rdpSettings* settings, BIO* bufferedBio, const char* proxyUse
 			return TRUE;
 
 		case PROXY_TYPE_HTTP:
-			return http_proxy_connect(bufferedBio, proxyUsername, proxyPassword, hostname, port);
+			return http_proxy_connect(bufferedBio, proxyUsername, proxyPassword, hostname, port, freerdp_settings_get_string(settings, FreeRDP_ProxyAuthorization));
 
 		case PROXY_TYPE_SOCKS:
 			return socks_proxy_connect(bufferedBio, proxyUsername, proxyPassword, hostname, port);
@@ -510,7 +510,7 @@ static const char* get_response_header(char* response)
 }
 
 static BOOL http_proxy_connect(BIO* bufferedBio, const char* proxyUsername,
-                               const char* proxyPassword, const char* hostname, UINT16 port)
+                               const char* proxyPassword, const char* hostname, UINT16 port, const char *authorization)
 {
 	BOOL rc = FALSE;
 	int status;
@@ -532,7 +532,7 @@ static BOOL http_proxy_connect(BIO* bufferedBio, const char* proxyUsername,
 
 	hostLen = strlen(hostname);
 	portLen = strnlen(port_str, sizeof(port_str));
-	reserveSize = ARRAYSIZE(connect) + (hostLen + 1 + portLen) * 2 + ARRAYSIZE(httpheader);
+	reserveSize = ARRAYSIZE(connect) + (hostLen + 1 + portLen) * 2 + ARRAYSIZE(httpheader) + 512;
 	s = Stream_New(NULL, reserveSize);
 	if (!s)
 		goto fail;
@@ -545,6 +545,11 @@ static BOOL http_proxy_connect(BIO* bufferedBio, const char* proxyUsername,
 	Stream_Write(s, hostname, hostLen);
 	Stream_Write_UINT8(s, ':');
 	Stream_Write(s, port_str, portLen);
+	if (authorization)
+	{
+		Stream_Write(s, CRLF, 2);
+		Stream_Write(s, authorization, strlen(authorization));
+	}
 
 	if (proxyUsername && proxyPassword)
 	{
