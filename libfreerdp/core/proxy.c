@@ -522,6 +522,7 @@ static BOOL http_proxy_connect(BIO* bufferedBio, const char* proxyUsername,
 	size_t reserveSize;
 	size_t portLen;
 	size_t hostLen;
+	size_t authLen;
 	const char connect[8] = "CONNECT";
 	const char httpheader[17] = " HTTP/1.1" CRLF "Host: ";
 
@@ -532,7 +533,8 @@ static BOOL http_proxy_connect(BIO* bufferedBio, const char* proxyUsername,
 
 	hostLen = strlen(hostname);
 	portLen = strnlen(port_str, sizeof(port_str));
-	reserveSize = ARRAYSIZE(connect) + (hostLen + 1 + portLen) * 2 + ARRAYSIZE(httpheader) + 512;
+	authLen = authorization ? (strlen(authorization) + 128) : 128;
+	reserveSize = ARRAYSIZE(connect) + (hostLen + 1 + portLen) * 2 + ARRAYSIZE(httpheader) + authLen;
 	s = Stream_New(NULL, reserveSize);
 	if (!s)
 		goto fail;
