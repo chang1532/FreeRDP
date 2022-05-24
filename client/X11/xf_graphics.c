@@ -84,7 +84,7 @@ BOOL xf_decode_color(xfContext* xfc, const UINT32 srcColor, XColor* color)
 			return FALSE;
 	}
 
-	SplitColor(srcColor, SrcFormat, &r, &g, &b, &a, &gdi->palette);
+	FreeRDPSplitColor(srcColor, SrcFormat, &r, &g, &b, &a, &gdi->palette);
 	color->blue = (unsigned short)(b << 8);
 	color->green = (unsigned short)(g << 8);
 	color->red = (unsigned short)(r << 8);
@@ -111,7 +111,7 @@ static BOOL xf_Bitmap_New(rdpContext* context, rdpBitmap* bitmap)
 
 	gdi = context->gdi;
 	xf_lock_x11(xfc);
-	depth = GetBitsPerPixel(bitmap->format);
+	depth = FreeRDPGetBitsPerPixel(bitmap->format);
 	xbitmap->pixmap =
 	    XCreatePixmap(xfc->display, xfc->drawable, bitmap->width, bitmap->height, xfc->depth);
 
@@ -124,18 +124,18 @@ static BOOL xf_Bitmap_New(rdpContext* context, rdpBitmap* bitmap)
 
 		if ((INT64)depth != xfc->depth)
 		{
-			if (!(data = _aligned_malloc(bitmap->width * bitmap->height * 4ULL, 16)))
+			if (!(data = winpr_aligned_malloc(bitmap->width * bitmap->height * 4ULL, 16)))
 				goto unlock;
 
 			if (!freerdp_image_copy(data, gdi->dstFormat, 0, 0, 0, bitmap->width, bitmap->height,
 			                        bitmap->data, bitmap->format, 0, 0, 0, &context->gdi->palette,
 			                        FREERDP_FLIP_NONE))
 			{
-				_aligned_free(data);
+				winpr_aligned_free(data);
 				goto unlock;
 			}
 
-			_aligned_free(bitmap->data);
+			winpr_aligned_free(bitmap->data);
 			bitmap->data = data;
 			bitmap->format = gdi->dstFormat;
 		}
@@ -183,7 +183,7 @@ static void xf_Bitmap_Free(rdpContext* context, rdpBitmap* bitmap)
 	}
 
 	xf_unlock_x11(xfc);
-	_aligned_free(bitmap->data);
+	winpr_aligned_free(bitmap->data);
 	free(xbitmap);
 }
 
@@ -226,7 +226,7 @@ static BOOL xf_Bitmap_SetSurface(rdpContext* context, rdpBitmap* bitmap, BOOL pr
 	return TRUE;
 }
 
-static BOOL _xf_Pointer_GetCursorForCurrentScale(rdpContext* context, const rdpPointer* pointer,
+static BOOL _xf_Pointer_GetCursorForCurrentScale(rdpContext* context, rdpPointer* pointer,
                                                  Cursor* cursor)
 {
 #ifdef WITH_XCURSOR
@@ -310,9 +310,9 @@ static BOOL _xf_Pointer_GetCursorForCurrentScale(rdpContext* context, const rdpP
 		ci.height = yTargetSize;
 		ci.xhot = pointer->xPos * xscale;
 		ci.yhot = pointer->yPos * yscale;
-		size = ci.height * ci.width * GetBytesPerPixel(CursorFormat) * 1ULL;
+		size = ci.height * ci.width * FreeRDPGetBytesPerPixel(CursorFormat) * 1ULL;
 
-		tmp = _aligned_malloc(size, 16);
+		tmp = winpr_aligned_malloc(size, 16);
 		if (!tmp)
 		{
 			xf_unlock_x11(xfc);
@@ -320,13 +320,13 @@ static BOOL _xf_Pointer_GetCursorForCurrentScale(rdpContext* context, const rdpP
 		}
 		ci.pixels = (XcursorPixel*)tmp;
 
-		if (xscale != 1 || yscale != 1)
+        if (xscale != 1 || yscale != 1)
 		{
 			if (!freerdp_image_scale((BYTE*)ci.pixels, CursorFormat, 0, 0, 0, ci.width, ci.height,
 			                         (BYTE*)xpointer->cursorPixels, CursorFormat, 0, 0, 0,
 			                         pointer->width, pointer->height))
 			{
-				_aligned_free(tmp);
+				winpr_aligned_free(tmp);
 				xf_unlock_x11(xfc);
 				return FALSE;
 			}
@@ -342,7 +342,7 @@ static BOOL _xf_Pointer_GetCursorForCurrentScale(rdpContext* context, const rdpP
 		xpointer->cursors[cursorIndex] = XcursorImageLoadCursor(xfc->display, &ci);
 		xpointer->nCursors += 1;
 
-		_aligned_free(tmp);
+		winpr_aligned_free(tmp);
 
 		xf_unlock_x11(xfc);
 	}
@@ -399,9 +399,9 @@ static BOOL xf_Pointer_New(rdpContext* context, rdpPointer* pointer)
 	xpointer->nCursors = 0;
 	xpointer->mCursors = 0;
 
-	size = pointer->height * pointer->width * GetBytesPerPixel(CursorFormat) * 1ULL;
+	size = pointer->height * pointer->width * FreeRDPGetBytesPerPixel(CursorFormat) * 1ULL;
 
-	if (!(xpointer->cursorPixels = (XcursorPixel*)_aligned_malloc(size, 16)))
+	if (!(xpointer->cursorPixels = (XcursorPixel*)winpr_aligned_malloc(size, 16)))
 		return FALSE;
 
 	if (!freerdp_image_copy_from_pointer_data(
@@ -409,7 +409,7 @@ static BOOL xf_Pointer_New(rdpContext* context, rdpPointer* pointer)
 	        pointer->xorMaskData, pointer->lengthXorMask, pointer->andMaskData,
 	        pointer->lengthAndMask, pointer->xorBpp, &context->gdi->palette))
 	{
-		_aligned_free(xpointer->cursorPixels);
+		winpr_aligned_free(xpointer->cursorPixels);
 		return FALSE;
 	}
 
@@ -428,7 +428,7 @@ static void xf_Pointer_Free(rdpContext* context, rdpPointer* pointer)
 
 	xf_lock_x11(xfc);
 
-	_aligned_free(xpointer->cursorPixels);
+	winpr_aligned_free(xpointer->cursorPixels);
 	free(xpointer->cursorWidths);
 	free(xpointer->cursorHeights);
 
@@ -445,11 +445,12 @@ static void xf_Pointer_Free(rdpContext* context, rdpPointer* pointer)
 #endif
 }
 
-static BOOL xf_Pointer_Set(rdpContext* context, const rdpPointer* pointer)
+static BOOL xf_Pointer_Set(rdpContext* context, rdpPointer* pointer)
 {
 #ifdef WITH_XCURSOR
 	xfContext* xfc = (xfContext*)context;
 	Window handle = xf_Pointer_get_window(xfc);
+
 	xfc->pointer = (xfPointer*)pointer;
 
 	/* in RemoteApp mode, window can be null if none has had focus */

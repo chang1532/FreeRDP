@@ -504,6 +504,13 @@ BOOL freerdp_settings_print_diff(wLog* log, DWORD level, const rdpSettings* sett
                                  const rdpSettings* other)
 {
 	size_t x;
+	BOOL rc = FALSE;
+
+	if (!settings && other)
+		rc = TRUE;
+	if (settings && !other)
+		rc = TRUE;
+
 	for (x = 0; x < ARRAYSIZE(settings_map); x++)
 	{
 		const struct settings_str_entry* cur = &settings_map[x];
@@ -514,8 +521,11 @@ BOOL freerdp_settings_print_diff(wLog* log, DWORD level, const rdpSettings* sett
 				BOOL sval = freerdp_settings_get_bool(settings, cur->id);
 				BOOL cval = freerdp_settings_get_bool(other, cur->id);
 				if (sval != cval)
+				{
 					WLog_Print(log, level, "%s [BOOL]: %s -> %s", cur->str, sval ? "TRUE" : "FALSE",
 					           cval ? "TRUE" : "FALSE");
+					rc = TRUE;
+				}
 			}
 			break;
 			case 1: /* UINT16 */
@@ -523,8 +533,11 @@ BOOL freerdp_settings_print_diff(wLog* log, DWORD level, const rdpSettings* sett
 				UINT16 sval = freerdp_settings_get_uint16(settings, cur->id);
 				UINT16 cval = freerdp_settings_get_uint16(other, cur->id);
 				if (sval != cval)
+				{
 					WLog_Print(log, level, "%s [UINT16]: %" PRIu16 " -> %" PRIu16, cur->str, sval,
 					           cval);
+					rc = TRUE;
+				}
 			}
 			break;
 			case 2: /* INT16 */
@@ -532,8 +545,11 @@ BOOL freerdp_settings_print_diff(wLog* log, DWORD level, const rdpSettings* sett
 				INT16 sval = freerdp_settings_get_int16(settings, cur->id);
 				INT16 cval = freerdp_settings_get_int16(other, cur->id);
 				if (sval != cval)
+				{
 					WLog_Print(log, level, "%s [INT16]: %" PRId16 " -> %" PRId16, cur->str, sval,
 					           cval);
+					rc = TRUE;
+				}
 			}
 			break;
 			case 3: /* UINT32 */
@@ -541,8 +557,11 @@ BOOL freerdp_settings_print_diff(wLog* log, DWORD level, const rdpSettings* sett
 				UINT32 sval = freerdp_settings_get_uint32(settings, cur->id);
 				UINT32 cval = freerdp_settings_get_uint32(other, cur->id);
 				if (sval != cval)
+				{
 					WLog_Print(log, level, "%s [UINT32]: %" PRIu32 " -> %" PRIu32, cur->str, sval,
 					           cval);
+					rc = TRUE;
+				}
 			}
 			break;
 			case 4: /* INT32 */
@@ -550,8 +569,11 @@ BOOL freerdp_settings_print_diff(wLog* log, DWORD level, const rdpSettings* sett
 				INT32 sval = freerdp_settings_get_int32(settings, cur->id);
 				INT32 cval = freerdp_settings_get_int32(other, cur->id);
 				if (sval != cval)
+				{
 					WLog_Print(log, level, "%s [INT32]: %" PRId32 " -> %" PRId32, cur->str, sval,
 					           cval);
+					rc = TRUE;
+				}
 			}
 			break;
 			case 5: /* UINT64 */
@@ -559,8 +581,11 @@ BOOL freerdp_settings_print_diff(wLog* log, DWORD level, const rdpSettings* sett
 				UINT64 sval = freerdp_settings_get_uint64(settings, cur->id);
 				UINT64 cval = freerdp_settings_get_uint64(other, cur->id);
 				if (sval != cval)
+				{
 					WLog_Print(log, level, "%s [UINT64]: %" PRIu64 " -> %" PRIu64, cur->str, sval,
 					           cval);
+					rc = TRUE;
+				}
 			}
 			break;
 			case 6: /* INT64 */
@@ -568,8 +593,11 @@ BOOL freerdp_settings_print_diff(wLog* log, DWORD level, const rdpSettings* sett
 				INT64 sval = freerdp_settings_get_int64(settings, cur->id);
 				INT64 cval = freerdp_settings_get_int64(other, cur->id);
 				if (sval != cval)
+				{
 					WLog_Print(log, level, "%s [INT64]: %" PRId64 " -> %" PRId64, cur->str, sval,
 					           cval);
+					rc = TRUE;
+				}
 			}
 			break;
 			case 7: /* strings */
@@ -579,7 +607,10 @@ BOOL freerdp_settings_print_diff(wLog* log, DWORD level, const rdpSettings* sett
 				if (sval != cval)
 				{
 					if (!sval || !cval || (strcmp(sval, cval) != 0))
+					{
 						WLog_Print(log, level, "%s [STRING]: '%s' -> '%s'", cur->str, sval, cval);
+						rc = TRUE;
+					}
 				}
 			}
 			break;
@@ -588,12 +619,18 @@ BOOL freerdp_settings_print_diff(wLog* log, DWORD level, const rdpSettings* sett
 				const void* sval = freerdp_settings_get_pointer(settings, cur->id);
 				const void* cval = freerdp_settings_get_pointer(other, cur->id);
 				if (sval != cval)
-					WLog_Print(log, level, "%s [POINTER]: '%p' -> '%p'", cur->str, sval, cval);
+				{
+					if ((sval && !cval) || (!sval && cval))
+					{
+						WLog_Print(log, level, "%s [POINTER]: '%p' -> '%p'", cur->str, sval, cval);
+						rc = TRUE;
+					}
+				}
 			}
 			break;
 		}
 	}
-	return TRUE;
+	return rc;
 }
 void freerdp_settings_dump(wLog* log, DWORD level, const rdpSettings* settings)
 {
