@@ -2521,12 +2521,6 @@ const char* freerdp_settings_get_string(const rdpSettings* settings, size_t id)
 		case FreeRDP_RDP2TCPArgs:
 			return settings->RDP2TCPArgs;
 
-		case FreeRDP_RdpKeyContent:
-			return settings->RdpKeyContent;
-
-		case FreeRDP_RdpKeyFile:
-			return settings->RdpKeyFile;
-
 		case FreeRDP_ReaderName:
 			return settings->ReaderName;
 
@@ -2787,12 +2781,6 @@ char* freerdp_settings_get_string_writable(rdpSettings* settings, size_t id)
 
 		case FreeRDP_RDP2TCPArgs:
 			return settings->RDP2TCPArgs;
-
-		case FreeRDP_RdpKeyContent:
-			return settings->RdpKeyContent;
-
-		case FreeRDP_RdpKeyFile:
-			return settings->RdpKeyFile;
 
 		case FreeRDP_ReaderName:
 			return settings->ReaderName;
@@ -3067,12 +3055,6 @@ BOOL freerdp_settings_set_string_(rdpSettings* settings, size_t id, const char* 
 
 		case FreeRDP_RDP2TCPArgs:
 			return update_string(&settings->RDP2TCPArgs, cnv.cc, len, cleanup);
-
-		case FreeRDP_RdpKeyContent:
-			return update_string(&settings->RdpKeyContent, cnv.cc, len, cleanup);
-
-		case FreeRDP_RdpKeyFile:
-			return update_string(&settings->RdpKeyFile, cnv.cc, len, cleanup);
 
 		case FreeRDP_ReaderName:
 			return update_string(&settings->ReaderName, cnv.cc, len, cleanup);

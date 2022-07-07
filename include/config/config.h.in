@@ -23,6 +23,8 @@
 #cmakedefine WITH_CUPS
 #cmakedefine WITH_JPEG
 #cmakedefine WITH_WIN8
+#cmakedefine WITH_CAIRO
+#cmakedefine WITH_SWSCALE
 #cmakedefine WITH_RDPSND_DSOUND
 
 #cmakedefine WITH_WINMM
@@ -40,7 +42,7 @@
 #cmakedefine WITH_GFX_H264
 #cmakedefine WITH_OPENH264
 #cmakedefine WITH_OPENH264_LOADING
-#cmakedefine WITH_FFMPEG
+#cmakedefine WITH_VIDEO_FFMPEG
 #cmakedefine WITH_DSP_EXPERIMENTAL
 #cmakedefine WITH_DSP_FFMPEG
 #cmakedefine WITH_OPENCL
