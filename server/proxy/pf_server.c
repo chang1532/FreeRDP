@@ -214,7 +214,8 @@ static BOOL pf_server_setup_channels(freerdp_peer* peer)
 			return FALSE;
 		}
 
-		if (strcmp(cname, DRDYNVC_SVC_CHANNEL_NAME) == 0)
+		if (strcmp(cname, DRDYNVC_SVC_CHANNEL_NAME) == 0 && 
+			(channelContext->channelMode == PF_UTILS_CHANNEL_INTERCEPT))
 		{
 			if (!pf_channel_setup_drdynvc(ps->pdata, channelContext))
 			{
