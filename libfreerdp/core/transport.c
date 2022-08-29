@@ -560,6 +560,23 @@ static void transport_bio_error_log(rdpTransport* transport, LPCSTR biofunc, BIO
 	    }
 }
 
+static BOOL transport_bio_should_retry(rdpTransport* transport)
+{
+	int saveerrno = 0;
+
+	WINPR_ASSERT(transport);
+
+	saveerrno = errno;
+	if ((saveerrno == EAGAIN || saveerrno == EWOULDBLOCK) && !transport->blocking)
+	{
+		WLog_Print(transport->log, WLOG_WARN, "bio function returned a system error %d: %s, try again", 
+					saveerrno, strerror(saveerrno));
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 static SSIZE_T transport_read_layer(rdpTransport* transport, BYTE* data, size_t bytes)
 {
 	SSIZE_T read = 0;
@@ -600,6 +617,13 @@ static SSIZE_T transport_read_layer(rdpTransport* transport, BYTE* data, size_t 
 				{
 					WLog_Print(transport->log, WLOG_ERROR, "BIO_read: transport->frontBio null");
 					return -1;
+				}
+
+				// check again
+				if (status < 0 && transport_bio_should_retry(transport))
+				{
+					WLog_Print(transport->log, WLOG_WARN, "transport_read_layer: transport_bio_should_retry TRUE");
+					return read;
 				}
 
 				WLog_ERR_BIO(transport, "BIO_read", transport->frontBio);
