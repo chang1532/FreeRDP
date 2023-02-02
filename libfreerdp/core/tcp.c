@@ -465,10 +465,11 @@ static long transport_bio_buffered_callback(BIO* bio, int mode, const char* argp
 
 static int transport_bio_buffered_write(BIO* bio, const char* buf, int num)
 {
+	int i = 0;
 	int ret = num;
 	int nchunks = 0;
 	size_t committedBytes = 0;
-	DataChunk chunks[2] = { 0 };
+	DataChunk chunks[2] = { {0}, {0} };
 	WINPR_BIO_BUFFERED_SOCKET* ptr = (WINPR_BIO_BUFFERED_SOCKET*)BIO_get_data(bio);
 	BIO* next_bio = NULL;
 
@@ -490,7 +491,7 @@ static int transport_bio_buffered_write(BIO* bio, const char* buf, int num)
 	nchunks = ringbuffer_peek(&ptr->xmitBuffer, chunks, ringbuffer_used(&ptr->xmitBuffer));
 	next_bio = BIO_next(bio);
 
-	for (int i = 0; i < nchunks; i++)
+	for (i = 0; i < nchunks; i++)
 	{
 		while (chunks[i].size)
 		{
