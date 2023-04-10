@@ -117,7 +117,7 @@ extern "C"
 	 * @param rb the ring buffer
 	 * @param sz the
 	 */
-	FREERDP_API void ringbuffer_commit_read_bytes(RingBuffer* rb, size_t sz);
+	FREERDP_API BOOL ringbuffer_commit_read_bytes(RingBuffer* rb, size_t sz);
 
 #ifdef __cplusplus
 }

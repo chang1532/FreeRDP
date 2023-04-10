@@ -479,6 +479,12 @@ static int transport_bio_buffered_write(BIO* bio, const char* buf, int num)
 	ptr->writeBlocked = FALSE;
 	BIO_clear_flags(bio, BIO_FLAGS_WRITE);
 
+	if (num < 0) 
+	{
+		WLog_ERR(TAG, "in transport_bio_buffered_write, an error occurred when writing (num: %d)", num);
+		return -1;
+	}
+
 	/* we directly append extra bytes in the xmit buffer, this could be prevented
 	 * but for now it makes the code more simple.
 	 */
@@ -523,7 +529,12 @@ static int transport_bio_buffered_write(BIO* bio, const char* buf, int num)
 	}
 
 out:
-	ringbuffer_commit_read_bytes(&ptr->xmitBuffer, committedBytes);
+	if (!ringbuffer_commit_read_bytes(&ptr->xmitBuffer, committedBytes))
+	{
+		WLog_ERR(TAG, "in transport_bio_buffered_write, ringbuffer_commit_read_bytes fail, committedBytes:%d", (int)committedBytes);
+		return -1;
+	}
+
 	return ret;
 }
 

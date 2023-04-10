@@ -278,12 +278,19 @@ int ringbuffer_peek(const RingBuffer* rb, DataChunk chunks[2], size_t sz)
 	return status;
 }
 
-void ringbuffer_commit_read_bytes(RingBuffer* rb, size_t sz)
+BOOL ringbuffer_commit_read_bytes(RingBuffer* rb, size_t sz)
 {
 	DEBUG_RINGBUFFER("ringbuffer_commit_read_bytes(%p): sz: %" PRIdz "", (void*)rb, sz);
 
 	if (sz < 1)
-		return;
+		return TRUE;
+
+	if ((rb->size - rb->freeSize) < sz)
+	{
+		WLog_ERR(TAG, "in ringbuffer_commit_read_bytes, an error occurred, rb->size:%d, rb->freeSize:%d, sz:%d", 
+						(int)rb->size, (int)rb->freeSize, (int)sz);
+		return FALSE;
+	}
 
 	WINPR_ASSERT(rb->size - rb->freeSize >= sz);
 	rb->readPtr = (rb->readPtr + sz) % rb->size;
@@ -292,4 +299,6 @@ void ringbuffer_commit_read_bytes(RingBuffer* rb, size_t sz)
 	/* when we reach a reasonable free size, we can go back to the original size */
 	if ((rb->size != rb->initialSize) && (ringbuffer_used(rb) < rb->initialSize / 2))
 		ringbuffer_realloc(rb, rb->initialSize);
+
+	return TRUE;
 }
