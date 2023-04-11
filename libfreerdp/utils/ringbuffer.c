@@ -285,7 +285,7 @@ BOOL ringbuffer_commit_read_bytes(RingBuffer* rb, size_t sz)
 	if (sz < 1)
 		return TRUE;
 
-	if ((rb->size - rb->freeSize) < sz)
+	if (rb->size < rb->freeSize || (rb->size - rb->freeSize) < sz)
 	{
 		WLog_ERR(TAG, "in ringbuffer_commit_read_bytes, an error occurred, rb->size:%d, rb->freeSize:%d, sz:%d", 
 						(int)rb->size, (int)rb->freeSize, (int)sz);
