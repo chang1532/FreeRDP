@@ -1031,6 +1031,13 @@ BOOL fastpath_send_multiple_input_pdu(rdpFastPath* fastpath, wStream* s, size_t 
 	Stream_SetPosition(s, length);
 	Stream_SealLength(s);
 
+    // 因为后续BIO_write发送数据时产生了core文件，所以这里做一下判断：s->length 不等于 length 则直接返回失败
+    if (Stream_Length(s) != length)
+    {
+        WLog_ERR(TAG, "in [%s], Stream_Length and length:%d:%d is not equal", __FUNCTION__, Stream_Length(s), length);
+        goto fail;
+    }
+
 	if (transport_write(rdp->transport, s) < 0)
 		goto fail;
 
