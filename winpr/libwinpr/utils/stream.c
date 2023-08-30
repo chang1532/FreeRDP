@@ -316,3 +316,21 @@ BOOL Stream_Read_UTF16_String(wStream* s, WCHAR* dst, size_t length)
 
 	return TRUE;
 }
+
+BOOL Stream_Invalid(wStream* s)
+{
+	if (!s || s->pointer < s->buffer)
+	{
+		return TRUE;
+	}
+
+	size_t cur;
+	cur = (size_t)(s->pointer - s->buffer);
+
+	if (cur > s->capacity)
+	{
+		return TRUE;
+	}
+
+	return FALSE;
+}

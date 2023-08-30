@@ -908,9 +908,9 @@ static int transport_default_write(rdpTransport* transport, wStream* s)
 	while (length > 0)
 	{
 	    // 规避因为未知原因，导致的 transport->frontBio 变为NULL的问题
-	    if (!transport->frontBio)
+	    if (!transport->frontBio || Stream_Invalid(s))
         {   
-            WLog_Print(transport->log, WLOG_ERROR, "in [%s], transport->frontBio before BIO_write is NULL", __FUNCTION__);
+            WLog_Print(transport->log, WLOG_ERROR, "in [%s], transport->frontBio before BIO_write is NULL or stream is invalid", __FUNCTION__);
             status = -1;
             goto out_cleanup;
         }

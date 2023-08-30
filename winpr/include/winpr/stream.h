@@ -414,6 +414,8 @@ extern "C"
 	WINPR_API BOOL Stream_Read_UTF16_String(wStream* s, WCHAR* dst, size_t length);
 	WINPR_API BOOL Stream_Write_UTF16_String(wStream* s, const WCHAR* src, size_t length);
 
+	WINPR_API BOOL Stream_Invalid(wStream* s);
+
 	/* StreamPool */
 
 	WINPR_API wStream* StreamPool_Take(wStreamPool* pool, size_t size);
