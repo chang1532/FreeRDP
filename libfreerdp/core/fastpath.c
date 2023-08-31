@@ -1043,6 +1043,12 @@ BOOL fastpath_send_multiple_input_pdu(rdpFastPath* fastpath, wStream* s, size_t 
 
 	rc = TRUE;
 fail:
+    // 如果有内存异常，则直接返回，不释放。
+    if (Stream_Invalid(s))
+    {
+        WLog_ERR(TAG, "in [%s], Stream_Invalid return true", __FUNCTION__);
+        return rc;
+    }
 	Stream_Release(s);
 	return rc;
 }

@@ -321,6 +321,7 @@ BOOL Stream_Invalid(wStream* s)
 {
 	if (!s || s->pointer < s->buffer)
 	{
+	    WLog_ERR(STREAM_TAG, "Stream_Invalid: s->pointer[%p] < s->buffer[%p]", s ? s->pointer: NULL, s ? s->buffer : NULL);
 		return TRUE;
 	}
 
@@ -329,6 +330,7 @@ BOOL Stream_Invalid(wStream* s)
 
 	if (cur > s->capacity)
 	{
+	    WLog_ERR(STREAM_TAG, "Stream_Invalid: cur[%d] > s->capacity[%d]", (int)cur, (int)s->capacity);
 		return TRUE;
 	}
 
