@@ -264,6 +264,13 @@ void StreamPool_Return(wStreamPool* pool, wStream* s)
 			WLog_ERR(STREAM_POOL_TAG, "in [%s], Stream_Invalid return true ", __FUNCTION__);
 			return;
 		}
+		
+		if (pool->aSize > pool->aCapacity)
+		{
+			WLog_ERR(STREAM_POOL_TAG, "in [%s], pool->aSize[%d] > pool->aCapacity[%d].", __FUNCTION__, 
+					pool ? (int)pool->aSize : 0, pool ? (int)pool->aCapacity : 0);
+			return;
+		}
         
 		Stream_EnsureValidity(s);
 		pool->aArray[(pool->aSize)++] = s;
