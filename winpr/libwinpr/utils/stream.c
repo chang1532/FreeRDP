@@ -171,6 +171,13 @@ void Stream_Free(wStream* s, BOOL bFreeBuffer)
 {
 	if (s)
 	{
+		// 如果检测到内存异常，则直接返回
+		if (Stream_Invalid(s))
+		{
+			WLog_ERR(STREAM_TAG, "in [%s], Stream_Invalid return true ", __FUNCTION__);
+			return;
+		}
+		
 		Stream_EnsureValidity(s);
 		if (bFreeBuffer && s->isOwner)
 			free(s->buffer);
