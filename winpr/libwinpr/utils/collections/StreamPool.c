@@ -28,6 +28,8 @@
 
 #include "../stream.h"
 
+#define STREAM_POOL_TAG "com.winpr.StreamPool"
+
 struct _wStreamPool
 {
 	size_t aSize;
@@ -256,6 +258,13 @@ void StreamPool_Return(wStreamPool* pool, wStream* s)
 
 	StreamPool_EnsureCapacity(pool, 1, FALSE);
 	{
+	    // 如果检测到内存异常，则直接返回
+		if (Stream_Invalid(s))
+		{
+			WLog_ERR(STREAM_POOL_TAG, "in [%s], Stream_Invalid return true ", __FUNCTION__);
+			return;
+		}
+        
 		Stream_EnsureValidity(s);
 		pool->aArray[(pool->aSize)++] = s;
 		StreamPool_RemoveUsed(pool, s);
