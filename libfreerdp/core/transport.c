@@ -974,6 +974,12 @@ static int transport_default_write(rdpTransport* transport, wStream* s)
 			}
 		}
 
+        if (status > 0 && status > (int)length)
+        {
+            WLog_Print(transport->log, WLOG_ERROR, "in [%s], status[%d] is out of limit length[%d]", __FUNCTION__, status, (int)length);
+            break;
+        }
+
 		length -= status;
 		Stream_Seek(s, status);
 	}
