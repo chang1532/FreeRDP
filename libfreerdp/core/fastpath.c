@@ -1035,7 +1035,7 @@ BOOL fastpath_send_multiple_input_pdu(rdpFastPath* fastpath, wStream* s, size_t 
     if (Stream_Length(s) != length)
     {
         WLog_ERR(TAG, "in [%s], Stream_Length and length:%d:%d is not equal, exception_ignore_return.", __FUNCTION__, Stream_Length(s), length);
-        goto fail;
+        return rc;
     }
 
 	if (transport_write(rdp->transport, s) < 0)
