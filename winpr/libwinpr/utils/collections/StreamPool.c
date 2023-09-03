@@ -52,8 +52,14 @@ struct _wStreamPool
 static INLINE void StreamPool_Lock(wStreamPool* pool)
 {
 	WINPR_ASSERT(pool);
-	if (pool->synchronized)
+	if (pool->synchronized) {
+		if (!pool->lock.LockSemaphore)
+		{
+			WLog_ERR(STREAM_POOL_TAG, "in [%s], pool->lock.LockSemaphore invalid, exception_ignore_return.", __FUNCTION__);
+			return;
+		}
 		EnterCriticalSection(&pool->lock);
+	}
 }
 
 /**
@@ -63,8 +69,14 @@ static INLINE void StreamPool_Lock(wStreamPool* pool)
 static INLINE void StreamPool_Unlock(wStreamPool* pool)
 {
 	WINPR_ASSERT(pool);
-	if (pool->synchronized)
+	if (pool->synchronized) {
+		if (!pool->lock.LockSemaphore)
+		{
+			WLog_ERR(STREAM_POOL_TAG, "in [%s], pool->lock.LockSemaphore invalid, exception_ignore_return.", __FUNCTION__);
+			return;
+		}
 		LeaveCriticalSection(&pool->lock);
+	}
 }
 
 static BOOL StreamPool_EnsureCapacity(wStreamPool* pool, size_t count, BOOL usedOrAvailable)
