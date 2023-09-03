@@ -174,7 +174,7 @@ void Stream_Free(wStream* s, BOOL bFreeBuffer)
 		// 如果检测到内存异常，则直接返回
 		if (Stream_Invalid(s))
 		{
-			WLog_ERR(STREAM_TAG, "in [%s], Stream_Invalid return true ", __FUNCTION__);
+			WLog_ERR(STREAM_TAG, "in [%s], Stream_Invalid return true, exception_ignore_return.", __FUNCTION__);
 			return;
 		}
 		
@@ -328,7 +328,7 @@ BOOL Stream_Invalid(wStream* s)
 {
 	if (!s || s->pointer < s->buffer)
 	{
-	    WLog_ERR(STREAM_TAG, "Stream_Invalid: s->pointer[%p] < s->buffer[%p]", s ? s->pointer: NULL, s ? s->buffer : NULL);
+	    WLog_ERR(STREAM_TAG, "Stream_Invalid: s->pointer[%p] < s->buffer[%p], exception_ignore_return.", s ? s->pointer: NULL, s ? s->buffer : NULL);
 		return TRUE;
 	}
 
@@ -337,7 +337,7 @@ BOOL Stream_Invalid(wStream* s)
 
 	if (cur > s->capacity)
 	{
-	    WLog_ERR(STREAM_TAG, "Stream_Invalid: cur[%d] > s->capacity[%d]", (int)cur, (int)s->capacity);
+	    WLog_ERR(STREAM_TAG, "Stream_Invalid: cur[%d] > s->capacity[%d], exception_ignore_return.", (int)cur, (int)s->capacity);
 		return TRUE;
 	}
 

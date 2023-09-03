@@ -273,13 +273,13 @@ void StreamPool_Return(wStreamPool* pool, wStream* s)
 	    // 如果检测到内存异常，则直接返回
 		if (Stream_Invalid(s))
 		{
-			WLog_ERR(STREAM_POOL_TAG, "in [%s], Stream_Invalid return true ", __FUNCTION__);
+			WLog_ERR(STREAM_POOL_TAG, "in [%s], Stream_Invalid return true, exception_ignore_return.", __FUNCTION__);
 			return;
 		}
 		
 		if (pool->aSize > pool->aCapacity)
 		{
-			WLog_ERR(STREAM_POOL_TAG, "in [%s], pool->aSize[%d] > pool->aCapacity[%d].", __FUNCTION__, 
+			WLog_ERR(STREAM_POOL_TAG, "in [%s], pool->aSize[%d] > pool->aCapacity[%d], exception_ignore_return.", __FUNCTION__, 
 					pool ? (int)pool->aSize : 0, pool ? (int)pool->aCapacity : 0);
 			return;
 		}

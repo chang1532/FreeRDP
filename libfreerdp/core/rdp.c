@@ -1498,7 +1498,7 @@ static int rdp_recv_pdu(rdpRdp* rdp, wStream* s)
     // 提前检查剩余可用长度，如果不符合条件，则直接返回-1
     if (!s || Stream_GetRemainingLength(s) < 1)
     {
-        WLog_ERR(TAG, "in %s, Incorrect RDP header length.", __FUNCTION__);
+        WLog_ERR(TAG, "in %s, Incorrect RDP header length, exception_ignore_return.", __FUNCTION__);
         return -1;
     }
     

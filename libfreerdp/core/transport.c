@@ -910,7 +910,7 @@ static int transport_default_write(rdpTransport* transport, wStream* s)
 	    // 规避因为未知原因，导致的 transport->frontBio 变为NULL的问题
 	    if (!transport->frontBio || Stream_Invalid(s))
         {   
-            WLog_Print(transport->log, WLOG_ERROR, "in [%s], transport->frontBio before BIO_write is NULL or stream is invalid", __FUNCTION__);
+            WLog_Print(transport->log, WLOG_ERROR, "in [%s], transport->frontBio before BIO_write is NULL or stream is invalid, exception_ignore_return.", __FUNCTION__);
             status = -1;
             goto out_cleanup;
         }
@@ -922,7 +922,7 @@ static int transport_default_write(rdpTransport* transport, wStream* s)
 		    // 规避因为未知原因，导致的 transport->frontBio 变为NULL的问题
 		    if (!transport->frontBio)
             {   
-                WLog_Print(transport->log, WLOG_ERROR, "in [%s], transport->frontBio after BIO_write is NULL", __FUNCTION__);
+                WLog_Print(transport->log, WLOG_ERROR, "in [%s], transport->frontBio after BIO_write is NULL, exception_ignore_return.", __FUNCTION__);
                 status = -1;
                 goto out_cleanup;
             }
@@ -976,7 +976,7 @@ static int transport_default_write(rdpTransport* transport, wStream* s)
 
         if (status > 0 && status > (int)length)
         {
-            WLog_Print(transport->log, WLOG_ERROR, "in [%s], status[%d] is out of limit length[%d]", __FUNCTION__, status, (int)length);
+            WLog_Print(transport->log, WLOG_ERROR, "in [%s], status[%d] is out of limit length[%d], exception_ignore_return.", __FUNCTION__, status, (int)length);
             break;
         }
 
