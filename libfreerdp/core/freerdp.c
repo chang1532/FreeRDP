@@ -547,6 +547,17 @@ BOOL freerdp_shall_disconnect(freerdp* instance)
 	return TRUE;
 }
 
+BOOL freerdp_shall_disconnect_context(rdpContext* context)
+{
+	if (!context)
+		return FALSE;
+
+	if (WaitForSingleObject(context->abortEvent, 0) != WAIT_OBJECT_0)
+		return FALSE;
+
+	return TRUE;
+}
+
 BOOL freerdp_focus_required(freerdp* instance)
 {
 	rdpRdp* rdp;

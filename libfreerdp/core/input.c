@@ -78,6 +78,17 @@ static void input_write_synchronize_event(wStream* s, UINT32 flags)
 	Stream_Write_UINT32(s, flags); /* toggleFlags (4 bytes) */
 }
 
+static BOOL input_ensure_client_running(rdpInput* input)
+{
+	WINPR_ASSERT(input);
+	if (freerdp_shall_disconnect_context(input->context))
+	{
+		WLog_WARN(TAG, "[APPLICATION BUG] input functions called after the session terminated");
+		return FALSE;
+	}
+	return TRUE;
+}
+
 static BOOL input_send_synchronize_event(rdpInput* input, UINT32 flags)
 {
 	wStream* s;
@@ -87,6 +98,10 @@ static BOOL input_send_synchronize_event(rdpInput* input, UINT32 flags)
 		return FALSE;
 
 	rdp = input->context->rdp;
+
+	if (!input_ensure_client_running(input))
+		return FALSE;
+
 	s = rdp_client_input_pdu_init(rdp, INPUT_EVENT_SYNC);
 
 	if (!s)
@@ -112,6 +127,10 @@ static BOOL input_send_keyboard_event(rdpInput* input, UINT16 flags, UINT16 code
 		return FALSE;
 
 	rdp = input->context->rdp;
+
+	if (!input_ensure_client_running(input))
+		return FALSE;
+
 	s = rdp_client_input_pdu_init(rdp, INPUT_EVENT_SCANCODE);
 
 	if (!s)
@@ -134,6 +153,9 @@ static BOOL input_send_unicode_keyboard_event(rdpInput* input, UINT16 flags, UIN
 	rdpRdp* rdp;
 
 	if (!input || !input->context)
+		return FALSE;
+
+	if (!input_ensure_client_running(input))
 		return FALSE;
 
 	if (!input->context->settings->UnicodeInput)
@@ -169,6 +191,9 @@ static BOOL input_send_mouse_event(rdpInput* input, UINT16 flags, UINT16 x, UINT
 
 	rdp = input->context->rdp;
 
+	if (!input_ensure_client_running(input))
+		return FALSE;
+
 	if (!input->context->settings->HasHorizontalWheel)
 	{
 		if (flags & PTR_FLAGS_HWHEEL)
@@ -203,6 +228,9 @@ static BOOL input_send_extended_mouse_event(rdpInput* input, UINT16 flags, UINT1
 	rdpRdp* rdp;
 
 	if (!input || !input->context)
+		return FALSE;
+
+	if (!input_ensure_client_running(input))
 		return FALSE;
 
 	if (!input->context->settings->HasExtendedMouseEvent)
@@ -272,6 +300,9 @@ static BOOL input_send_fastpath_synchronize_event(rdpInput* input, UINT32 flags)
 	if (!input || !input->context)
 		return FALSE;
 
+	if (!input_ensure_client_running(input))
+		return FALSE;
+
 	rdp = input->context->rdp;
 	/* The FastPath Synchronization eventFlags has identical values as SlowPath */
 	s = fastpath_input_pdu_init(rdp->fastpath, (BYTE)flags, FASTPATH_INPUT_EVENT_SYNC);
@@ -289,6 +320,9 @@ static BOOL input_send_fastpath_keyboard_event(rdpInput* input, UINT16 flags, UI
 	rdpRdp* rdp;
 
 	if (!input || !input->context)
+		return FALSE;
+
+	if (!input_ensure_client_running(input))
 		return FALSE;
 
 	rdp = input->context->rdp;
@@ -312,6 +346,9 @@ static BOOL input_send_fastpath_unicode_keyboard_event(rdpInput* input, UINT16 f
 	rdpRdp* rdp;
 
 	if (!input || !input->context)
+		return FALSE;
+
+	if (!input_ensure_client_running(input))
 		return FALSE;
 
 	if (!input->context->settings->UnicodeInput)
@@ -340,6 +377,9 @@ static BOOL input_send_fastpath_mouse_event(rdpInput* input, UINT16 flags, UINT1
 		return FALSE;
 
 	rdp = input->context->rdp;
+
+	if (!input_ensure_client_running(input))
+		return FALSE;
 
 	if (!input->context->settings->HasHorizontalWheel)
 	{
@@ -371,6 +411,9 @@ static BOOL input_send_fastpath_extended_mouse_event(rdpInput* input, UINT16 fla
 	if (!input || !input->context)
 		return FALSE;
 
+	if (!input_ensure_client_running(input))
+		return FALSE;
+
 	if (!input->context->settings->HasExtendedMouseEvent)
 	{
 		WLog_WARN(TAG,
@@ -397,6 +440,9 @@ static BOOL input_send_fastpath_focus_in_event(rdpInput* input, UINT16 toggleSta
 	rdpRdp* rdp;
 
 	if (!input || !input->context)
+		return FALSE;
+
+	if (!input_ensure_client_running(input))
 		return FALSE;
 
 	rdp = input->context->rdp;
@@ -431,6 +477,9 @@ static BOOL input_send_fastpath_keyboard_pause_event(rdpInput* input)
 	rdpRdp* rdp;
 
 	if (!input || !input->context)
+		return FALSE;
+
+	if (!input_ensure_client_running(input))
 		return FALSE;
 
 	rdp = input->context->rdp;
