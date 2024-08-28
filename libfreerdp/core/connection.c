@@ -377,6 +377,7 @@ BOOL rdp_client_connect(rdpRdp* rdp)
 			return FALSE;
 	}
 
+    WLog_INFO(TAG, "in rdp_client_connect, TcpAckTimeout:%d", (int)settings->TcpAckTimeout);
 	for (timeout = 0; timeout < settings->TcpAckTimeout; timeout += 100)
 	{
 		if (rdp_check_fds(rdp) < 0)
