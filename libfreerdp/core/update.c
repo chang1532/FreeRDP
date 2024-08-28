@@ -325,7 +325,10 @@ BOOL update_recv_play_sound(rdpUpdate* update, wStream* s)
 	PLAY_SOUND_UPDATE play_sound;
 
 	if (!update_read_play_sound(s, &play_sound))
+    {
+        WLog_ERR(TAG, "in update_recv_play_sound, update_read_play_sound failed");
 		return FALSE;
+    }
 
 	return IFCALLRESULT(FALSE, update->PlaySound, update->context, &play_sound);
 }
@@ -1402,11 +1405,19 @@ static BOOL update_send_play_sound(rdpContext* context, const PLAY_SOUND_UPDATE*
 	s = rdp_data_pdu_init(rdp);
 
 	if (!s)
+    {
+        WLog_ERR(TAG, "in update_send_play_sound, rdp_data_pdu_init failed");
 		return FALSE;
+    }
 
 	Stream_Write_UINT32(s, play_sound->duration);
 	Stream_Write_UINT32(s, play_sound->frequency);
-	return rdp_send_data_pdu(rdp, s, DATA_PDU_TYPE_PLAY_SOUND, rdp->mcs->userId);
+	BOOL ret = rdp_send_data_pdu(rdp, s, DATA_PDU_TYPE_PLAY_SOUND, rdp->mcs->userId);
+    if (!ret)
+    {
+        WLog_ERR(TAG, "in update_send_play_sound, rdp_send_data_pdu for DATA_PDU_TYPE_PLAY_SOUND failed");
+    }
+    return ret;
 }
 
 /**
