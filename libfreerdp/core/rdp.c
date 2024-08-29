@@ -993,7 +993,7 @@ int rdp_recv_data_pdu(rdpRdp* rdp, wStream* s)
 		case DATA_PDU_TYPE_PLAY_SOUND:
 			if (!update_recv_play_sound(rdp->update, cs))
 			{
-				WLog_ERR(TAG, "DATA_PDU_TYPE_PLAY_SOUND - update_recv_play_sound() failed");
+				WLog_ERR(TAG, "DATA_PDU_TYPE_PLAY_SOUND - update_recv_play_sound() failed, update->PlaySound:%p", rdp->update->PlaySound);
 				goto out_fail;
 			}
 
